@@ -4,7 +4,7 @@ import TypingAnimation from './TypingAnimation'
 
 export default function HomeSection() {
   return (
-    <section id="home" className="bg-secondary">
+    <section id="home" className="bg-background">
       <div className="container mx-auto px-4 md:px-6">
         <div className="grid items-center gap-8 md:grid-cols-2 lg:gap-12">
           <div className="space-y-4">

@@ -5,7 +5,7 @@ import { GraduationCap } from 'lucide-react'
 
 export default function EducationSection() {
   return (
-    <section id="education" className="bg-secondary">
+    <section id="education" className="bg-background">
       <div className="container mx-auto px-4 md:px-6">
         <div className="flex flex-col items-center text-center space-y-4 mb-12">
           <h2 className="font-headline text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">Education</h2>

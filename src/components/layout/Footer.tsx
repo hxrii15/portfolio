@@ -4,7 +4,7 @@ import Link from 'next/link'
 
 export default function Footer() {
   return (
-    <footer className="bg-secondary text-secondary-foreground">
+    <footer className="bg-background text-secondary-foreground">
       <div className="container mx-auto flex flex-col items-center justify-between gap-4 px-4 py-8 sm:flex-row md:px-6">
         <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} Hariharan. All rights reserved.</p>
         <div className="flex items-center gap-2">
