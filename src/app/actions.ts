@@ -4,27 +4,33 @@
 import { cookies } from 'next/headers'
 import { z } from 'zod'
 import { portfolioAssistant } from '@/ai/flows/portfolio-assistant'
-import { auth as adminAuth } from 'firebase-admin'
-import { getAuth } from 'firebase/auth'
+import { credential } from 'firebase-admin'
 import { initializeApp, getApps } from 'firebase-admin/app'
-import { auth } from '@/lib/firebase'
+import { getAuth as getAdminAuth } from 'firebase-admin/auth'
 
 // Initialize Firebase Admin SDK if not already initialized
 if (!getApps().length) {
-  const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
-    ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY)
-    : null;
-
-  if (serviceAccount) {
-    initializeApp({
-      credential: adminAuth.cert(serviceAccount),
-    });
+  const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
+  if (serviceAccountKey) {
+    try {
+      const serviceAccount = JSON.parse(serviceAccountKey)
+      initializeApp({
+        credential: credential.cert(serviceAccount),
+      });
+    } catch (error) {
+      console.error("Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY:", error);
+    }
+  } else {
+    console.warn("FIREBASE_SERVICE_ACCOUNT_KEY is not set. Admin features will be disabled.");
   }
 }
 
 export async function createSession(idToken: string) {
+  if (!getApps().length) {
+    return { success: false, message: 'Server is not configured for authentication.' };
+  }
   try {
-    const decodedToken = await adminAuth().verifyIdToken(idToken);
+    const decodedToken = await getAdminAuth().verifyIdToken(idToken);
     
     if (decodedToken.email !== "hariharanmanii15@gmail.com") {
       return { success: false, message: 'Access denied. Not an admin user.' };
@@ -40,7 +46,7 @@ export async function createSession(idToken: string) {
 
   } catch (error: any) {
     console.error("Session creation failed:", error);
-    return { success: false, message: 'Failed to create a session.' }
+    return { success: false, message: 'Failed to create a session. Please check server logs.' }
   }
 }
 
@@ -71,12 +77,12 @@ export async function askAI(data: unknown) {
 export async function verifyAuth() {
   const authToken = cookies().get('auth-token')?.value;
 
-  if (!authToken) {
+  if (!authToken || !getApps().length) {
     return { isAuthenticated: false };
   }
 
   try {
-    const decodedToken = await adminAuth().verifyIdToken(authToken);
+    const decodedToken = await getAdminAuth().verifyIdToken(authToken);
     if (decodedToken.email === 'hariharanmanii15@gmail.com') {
       return { isAuthenticated: true, email: decodedToken.email };
     }
