@@ -1,27 +1,45 @@
 'use client'
 
-import { useTransition } from 'react'
+import { useTransition, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
-import { logout } from '@/app/actions'
+import { logout, verifyAuth } from '@/app/actions'
 import { Loader2, LogOut } from 'lucide-react'
-import { auth } from '@/lib/firebase'
-import { signOut } from 'firebase/auth'
 
 export default function DashboardPage() {
   const router = useRouter()
   const { toast } = useToast()
   const [isPending, startTransition] = useTransition()
+  const [isVerifying, setIsVerifying] = useState(true);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { isAuthenticated } = await verifyAuth();
+      if (!isAuthenticated) {
+        router.replace('/admin/login');
+      } else {
+        setIsVerifying(false);
+      }
+    };
+    checkAuth();
+  }, [router]);
 
   const handleLogout = () => {
     startTransition(async () => {
-      await signOut(auth) 
       await logout()
       toast({ title: 'Logged Out', description: 'You have been successfully logged out.' })
       router.push('/admin/login')
     })
+  }
+  
+  if (isVerifying) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-secondary">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
   return (
@@ -37,4 +55,12 @@ export default function DashboardPage() {
             {isPending ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
-              <LogOut className="mr-
+              <LogOut className="mr-2 h-4 w-4" />
+            )}
+            Logout
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
