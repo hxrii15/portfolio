@@ -1,20 +1,23 @@
 'use server'
 
-import { portfolioAssistant } from '@/ai/flows/portfolio-assistant'
 import { cookies } from 'next/headers'
 import { z } from 'zod'
+import { portfolioAssistant } from '@/ai/flows/portfolio-assistant'
 
-const loginSchema = z.object({
-  password: z.string(),
+
+const googleLoginSchema = z.object({
+  email: z.string().email(),
 })
 
-export async function login(data: unknown) {
-  const parsed = loginSchema.safeParse(data)
+export async function signInWithGoogle(data: unknown) {
+  const parsed = googleLoginSchema.safeParse(data)
   if (!parsed.success) {
     return { success: false, message: 'Invalid data' }
   }
 
-  if (parsed.data.password === process.env.ADMIN_PASSWORD) {
+  // In a production app, you would verify the ID token here with the Firebase Admin SDK.
+  // For this prototype, we'll trust the email from the client, but only if it's the admin email.
+  if (parsed.data.email === "hariharanmanii15@gmail.com") {
     cookies().set('auth-token', process.env.ADMIN_AUTH_TOKEN!, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -23,7 +26,7 @@ export async function login(data: unknown) {
     })
     return { success: true }
   } else {
-    return { success: false, message: 'Incorrect password' }
+    return { success: false, message: 'This email is not authorized.' }
   }
 }
 

@@ -7,6 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast'
 import { logout } from '@/app/actions'
 import { Loader2, LogOut } from 'lucide-react'
+import { auth } from '@/lib/firebase'
+import { signOut } from 'firebase/auth'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -15,6 +17,7 @@ export default function DashboardPage() {
 
   const handleLogout = () => {
     startTransition(async () => {
+      await signOut(auth)
       await logout()
       toast({ title: 'Logged Out', description: 'You have been successfully logged out.' })
       router.push('/admin/login')
