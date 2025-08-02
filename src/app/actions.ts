@@ -1,3 +1,4 @@
+
 'use server'
 
 import { cookies } from 'next/headers'
@@ -6,8 +7,7 @@ import { portfolioAssistant } from '@/ai/flows/portfolio-assistant'
 import { auth as adminAuth } from 'firebase-admin'
 import { getAuth } from 'firebase/auth'
 import { initializeApp, getApps } from 'firebase-admin/app'
-import { signInWithEmailAndPassword } from 'firebase/auth'
-import { auth as clientAuth } from '@/lib/firebase'
+import { auth } from '@/lib/firebase'
 
 // Initialize Firebase Admin SDK if not already initialized
 if (!getApps().length) {
@@ -22,33 +22,15 @@ if (!getApps().length) {
   }
 }
 
-const emailLoginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1, "Password is required"),
-})
-
-export async function signInWithEmail(data: unknown) {
-  const parsed = emailLoginSchema.safeParse(data)
-  if (!parsed.success) {
-    return { success: false, message: 'Invalid data' }
-  }
-
+export async function createSession(idToken: string) {
   try {
-    const userCredential = await signInWithEmailAndPassword(clientAuth, parsed.data.email, parsed.data.password);
-    const user = userCredential.user;
-
-    // After successful Firebase client-side login, get the ID token
-    const token = await user.getIdToken();
-
-    // Verify the token on the server-side using Firebase Admin SDK
-    const decodedToken = await adminAuth().verifyIdToken(token);
+    const decodedToken = await adminAuth().verifyIdToken(idToken);
     
     if (decodedToken.email !== "hariharanmanii15@gmail.com") {
-      await clientAuth.signOut();
       return { success: false, message: 'Access denied. Not an admin user.' };
     }
 
-    cookies().set('auth-token', token, {
+    cookies().set('auth-token', idToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       path: '/',
@@ -57,26 +39,13 @@ export async function signInWithEmail(data: unknown) {
     return { success: true }
 
   } catch (error: any) {
-    let message = 'An unknown authentication error occurred.';
-    switch (error.code) {
-      case 'auth/user-not-found':
-      case 'auth/wrong-password':
-      case 'auth/invalid-credential':
-        message = 'Invalid email or password.';
-        break;
-      case 'auth/too-many-requests':
-        message = 'Too many login attempts. Please try again later.';
-        break;
-      default:
-        console.error("Firebase Auth Error:", error);
-    }
-    return { success: false, message }
+    console.error("Session creation failed:", error);
+    return { success: false, message: 'Failed to create a session.' }
   }
 }
 
 
 export async function logout() {
-  await clientAuth.signOut()
   cookies().delete('auth-token')
 }
 

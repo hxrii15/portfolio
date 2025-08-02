@@ -6,14 +6,16 @@ import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { signInWithEmailAndPassword } from 'firebase/auth'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
-import { signInWithEmail } from '@/app/actions'
+import { createSession } from '@/app/actions'
 import { Loader2 } from 'lucide-react'
+import { auth } from '@/lib/firebase'
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email.' }),
@@ -35,18 +37,43 @@ export default function AdminLoginPage() {
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     startTransition(async () => {
-      const result = await signInWithEmail(values);
+      try {
+        const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password)
+        const idToken = await userCredential.user.getIdToken()
+        
+        const result = await createSession(idToken);
 
-      if (result.success) {
-        toast({ title: 'Login Successful', description: 'Redirecting to dashboard...' })
-        router.push('/admin/dashboard')
-        router.refresh() // Ensures the middleware is re-run
-      } else {
+        if (result.success) {
+          toast({ title: 'Login Successful', description: 'Redirecting to dashboard...' })
+          router.push('/admin/dashboard')
+          router.refresh()
+        } else {
+          await auth.signOut();
+          toast({
+            variant: "destructive",
+            title: 'Authentication Failed',
+            description: result.message,
+          })
+        }
+      } catch (error: any) {
+        let message = 'An unknown authentication error occurred.';
+        switch (error.code) {
+          case 'auth/user-not-found':
+          case 'auth/wrong-password':
+          case 'auth/invalid-credential':
+            message = 'Invalid email or password.';
+            break;
+          case 'auth/too-many-requests':
+            message = 'Too many login attempts. Please try again later.';
+            break;
+          default:
+            console.error("Firebase Auth Error:", error);
+        }
         toast({
           variant: "destructive",
           title: 'Authentication Failed',
-          description: result.message,
-        })
+          description: message,
+        });
       }
     })
   }
