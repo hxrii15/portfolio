@@ -17,7 +17,9 @@ export default function DashboardPage() {
 
   const handleLogout = () => {
     startTransition(async () => {
-      await signOut(auth)
+      // Since we are not using client-side firebase auth for login,
+      // we only need to clear the server-side cookie.
+      // await signOut(auth) 
       await logout()
       toast({ title: 'Logged Out', description: 'You have been successfully logged out.' })
       router.push('/admin/login')

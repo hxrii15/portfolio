@@ -4,21 +4,21 @@ import { cookies } from 'next/headers'
 import { z } from 'zod'
 import { portfolioAssistant } from '@/ai/flows/portfolio-assistant'
 
-
-const googleLoginSchema = z.object({
+const emailLoginSchema = z.object({
   email: z.string().email(),
+  password: z.string().min(1, "Password is required"),
 })
 
-export async function signInWithGoogle(data: unknown) {
-  const parsed = googleLoginSchema.safeParse(data)
+export async function signInWithEmail(data: unknown) {
+  const parsed = emailLoginSchema.safeParse(data)
   if (!parsed.success) {
     return { success: false, message: 'Invalid data' }
   }
 
-  // In a production app, you would verify the ID token here with the Firebase Admin SDK.
-  // For this prototype, we'll trust the email from the client, but only if it's the admin email.
-  if (parsed.data.email === "hariharanmanii15@gmail.com") {
-    cookies().set('auth-token', process.env.ADMIN_AUTH_TOKEN!, {
+  // In a real app, you would use Firebase Admin SDK here to verify the user
+  // For this prototype, we will simulate the check
+  if (parsed.data.email === "hariharanmanii15@gmail.com" && parsed.data.password === process.env.ADMIN_PASSWORD) {
+     cookies().set('auth-token', process.env.ADMIN_AUTH_TOKEN!, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       path: '/',
@@ -26,9 +26,10 @@ export async function signInWithGoogle(data: unknown) {
     })
     return { success: true }
   } else {
-    return { success: false, message: 'This email is not authorized.' }
+    return { success: false, message: 'Invalid email or password.' }
   }
 }
+
 
 export async function logout() {
   cookies().delete('auth-token')
