@@ -17,9 +17,7 @@ export default function DashboardPage() {
 
   const handleLogout = () => {
     startTransition(async () => {
-      // Since we are not using client-side firebase auth for login,
-      // we only need to clear the server-side cookie.
-      // await signOut(auth) 
+      await signOut(auth) 
       await logout()
       toast({ title: 'Logged Out', description: 'You have been successfully logged out.' })
       router.push('/admin/login')
@@ -39,12 +37,4 @@ export default function DashboardPage() {
             {isPending ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
-              <LogOut className="mr-2 h-4 w-4" />
-            )}
-            Log Out
-          </Button>
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
+              <LogOut className="mr-
