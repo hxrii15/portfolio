@@ -1,0 +1,73 @@
+import Image from 'next/image'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Clock } from 'lucide-react'
+
+type BlogCardProps = {
+  post: {
+    title: string;
+    description: string;
+    image: string;
+    tags: string[];
+    readTime: string;
+    content: string;
+  }
+}
+
+export default function BlogCard({ post }: BlogCardProps) {
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Card className="overflow-hidden h-full flex flex-col cursor-pointer hover:shadow-xl transition-shadow duration-300">
+          <CardHeader className="p-0">
+            <div className="aspect-video relative">
+              <Image
+                src={post.image}
+                alt={post.title}
+                fill
+                className="object-cover"
+                data-ai-hint="technology blog"
+              />
+            </div>
+          </CardHeader>
+          <CardContent className="p-6 flex-grow">
+            <CardTitle className="font-headline mb-2">{post.title}</CardTitle>
+            <CardDescription>{post.description}</CardDescription>
+          </CardContent>
+          <CardFooter className="p-6 pt-0 flex flex-col items-start gap-4">
+            <div className="flex flex-wrap gap-2">
+              {post.tags.map(tag => (
+                <Badge key={tag} variant="secondary">{tag}</Badge>
+              ))}
+            </div>
+            <div className="flex items-center text-sm text-muted-foreground">
+              <Clock className="mr-2 h-4 w-4" />
+              <span>{post.readTime}</span>
+            </div>
+          </CardFooter>
+        </Card>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[725px]">
+        <DialogHeader>
+          <DialogTitle className="font-headline text-2xl">{post.title}</DialogTitle>
+           <div className="flex justify-between items-center text-sm text-muted-foreground pt-2">
+              <div className="flex flex-wrap gap-2">
+                {post.tags.map(tag => (
+                  <Badge key={tag} variant="secondary">{tag}</Badge>
+                ))}
+              </div>
+              <div className="flex items-center">
+                <Clock className="mr-2 h-4 w-4" />
+                <span>{post.readTime}</span>
+              </div>
+          </div>
+        </DialogHeader>
+        <div
+          className="py-4 prose dark:prose-invert"
+          dangerouslySetInnerHTML={{ __html: post.content }}
+        />
+      </DialogContent>
+    </Dialog>
+  )
+}
