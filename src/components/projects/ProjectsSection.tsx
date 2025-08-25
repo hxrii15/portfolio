@@ -10,8 +10,15 @@ import ProjectCard from './ProjectCard'
 import { db } from '@/lib/firebase'
 import { ref, onValue } from 'firebase/database'
 import { Skeleton } from '../ui/skeleton'
+import Link from 'next/link'
+import { ArrowRight } from 'lucide-react'
 
-export default function ProjectsSection() {
+type ProjectsSectionProps = {
+  limit?: number;
+  showViewAll?: boolean;
+}
+
+export default function ProjectsSection({ limit, showViewAll = false }: ProjectsSectionProps) {
   const [projectsData, setProjectsData] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -64,13 +71,17 @@ export default function ProjectsSection() {
   const allTags = useMemo(() => Array.from(new Set(projectsData.flatMap(p => p.tags))), [projectsData]);
 
   const filteredProjects = useMemo(() => {
-    return projectsData.filter(project => {
+    const allFiltered = projectsData.filter(project => {
       const searchMatch = project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           project.description.toLowerCase().includes(searchQuery.toLowerCase())
       const tagMatch = selectedTag === 'all' || project.tags.includes(selectedTag)
       return searchMatch && tagMatch
     })
-  }, [searchQuery, selectedTag, projectsData])
+    if (limit) {
+      return allFiltered.slice(0, limit);
+    }
+    return allFiltered
+  }, [searchQuery, selectedTag, projectsData, limit])
 
   return (
     <section id="projects" className="bg-background">
@@ -108,7 +119,7 @@ export default function ProjectsSection() {
 
         {loading ? (
            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {[...Array(3)].map((_, index) => (
+            {[...Array(limit || 3)].map((_, index) => (
               <CardSkeleton key={index} />
             ))}
           </div>
@@ -121,6 +132,15 @@ export default function ProjectsSection() {
         ) : (
           <div className="text-center py-16 text-muted-foreground">
             <p>No projects found. Try adjusting your search or filters.</p>
+          </div>
+        )}
+        {showViewAll && (
+          <div className="mt-12 text-center">
+            <Button asChild variant="outline">
+              <Link href="/projects">
+                View All Projects <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
           </div>
         )}
       </div>

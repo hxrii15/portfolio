@@ -7,21 +7,33 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import type { BlogPost } from '@/lib/data'
 import BlogCard from './BlogCard'
 import { Button } from '../ui/button'
+import Link from 'next/link'
+import { ArrowRight } from 'lucide-react'
 
-export default function BlogSection({ posts }: { posts: BlogPost[] }) {
+type BlogSectionProps = {
+  posts: BlogPost[];
+  limit?: number;
+  showViewAll?: boolean;
+}
+
+export default function BlogSection({ posts, limit, showViewAll = false }: BlogSectionProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedTag, setSelectedTag] = useState('all')
 
   const allTags = useMemo(() => Array.from(new Set(posts.flatMap(p => p.tags))), [posts]);
 
   const filteredBlogs = useMemo(() => {
-    return posts.filter(blog => {
+    const allFiltered = posts.filter(blog => {
       const searchMatch = blog.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           blog.description.toLowerCase().includes(searchQuery.toLowerCase())
       const tagMatch = selectedTag === 'all' || blog.tags.includes(selectedTag)
       return searchMatch && tagMatch
     })
-  }, [searchQuery, selectedTag, posts])
+    if (limit) {
+      return allFiltered.slice(0, limit);
+    }
+    return allFiltered
+  }, [searchQuery, selectedTag, posts, limit])
 
   return (
     <section id="blog" className="bg-secondary">
@@ -67,6 +79,15 @@ export default function BlogSection({ posts }: { posts: BlogPost[] }) {
           <div className="text-center py-16 text-muted-foreground">
             <p>No articles found. Please check back later.</p>
             <p className="text-sm mt-2">To add a blog post, create a new `.md` file in the `src/blog` directory.</p>
+          </div>
+        )}
+        {showViewAll && (
+          <div className="mt-12 text-center">
+            <Button asChild variant="outline">
+              <Link href="/blog">
+                View All Posts <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
           </div>
         )}
       </div>

@@ -1,14 +1,22 @@
 
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import type { Poem } from '@/lib/data'
 import PoemCard from './PoemCard'
 import { db } from '@/lib/firebase'
 import { ref, onValue } from 'firebase/database'
 import { Skeleton } from '../ui/skeleton'
+import { Button } from '../ui/button'
+import Link from 'next/link'
+import { ArrowRight } from 'lucide-react'
 
-export default function PoemSection() {
+type PoemSectionProps = {
+  limit?: number;
+  showViewAll?: boolean;
+}
+
+export default function PoemSection({ limit, showViewAll = false }: PoemSectionProps) {
   const [poemData, setPoemData] = useState<Poem[]>([])
   const [loading, setLoading] = useState(true)
   
@@ -56,6 +64,13 @@ export default function PoemSection() {
     return () => unsubscribe();
   }, []);
 
+  const displayedPoems = useMemo(() => {
+    if (limit) {
+      return poemData.slice(0, limit);
+    }
+    return poemData;
+  }, [poemData, limit]);
+
   return (
     <section id="poem" className="bg-background">
       <div className="container mx-auto px-4 md:px-6">
@@ -66,19 +81,28 @@ export default function PoemSection() {
         
         {loading ? (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {[...Array(3)].map((_, index) => (
+            {[...Array(limit || 3)].map((_, index) => (
               <CardSkeleton key={index} />
             ))}
           </div>
-        ) : poemData.length > 0 ? (
+        ) : displayedPoems.length > 0 ? (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {poemData.map((poem) => (
+            {displayedPoems.map((poem) => (
               <PoemCard key={poem.id} poem={poem} />
             ))}
           </div>
         ) : (
           <div className="text-center py-16 text-muted-foreground">
             <p>No poems available at the moment. Please check back later.</p>
+          </div>
+        )}
+         {showViewAll && (
+          <div className="mt-12 text-center">
+            <Button asChild variant="outline">
+              <Link href="/poems">
+                View All Poems <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
           </div>
         )}
       </div>
