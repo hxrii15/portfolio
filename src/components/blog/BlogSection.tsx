@@ -1,3 +1,4 @@
+
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
@@ -17,6 +18,19 @@ export default function BlogSection() {
   const [selectedTag, setSelectedTag] = useState('all')
   
   useEffect(() => {
+    const cacheKey = 'blogDataCache';
+    const cachedData = localStorage.getItem(cacheKey);
+    const now = new Date().getTime();
+
+    if (cachedData) {
+        const { timestamp, data } = JSON.parse(cachedData);
+        if (now - timestamp < 24 * 60 * 60 * 1000) {
+            setBlogData(data);
+            setLoading(false);
+            return;
+        }
+    }
+
     const blogRef = ref(db, 'blog');
     const unsubscribe = onValue(blogRef, (snapshot) => {
       const data = snapshot.val();
@@ -26,10 +40,14 @@ export default function BlogSection() {
           ...data[key]
         }));
         setBlogData(blogList);
+        localStorage.setItem(cacheKey, JSON.stringify({ timestamp: now, data: blogList }));
       } else {
         setBlogData([]);
       }
       setLoading(false);
+    }, (error) => {
+        console.error("Firebase read failed: " + error.message);
+        setLoading(false);
     });
 
     return () => unsubscribe();
@@ -104,16 +122,19 @@ export default function BlogSection() {
 
 function CardSkeleton() {
   return (
-    <div className="flex flex-col space-y-3">
-      <Skeleton className="h-[225px] w-full rounded-xl" />
-      <div className="space-y-2 p-4">
+    <div className="flex flex-col space-y-3 rounded-xl border bg-card text-card-foreground shadow-sm">
+      <Skeleton className="h-[225px] w-full rounded-t-xl" />
+      <div className="space-y-2 p-6 pt-4">
         <Skeleton className="h-6 w-3/4" />
         <Skeleton className="h-4 w-full" />
         <Skeleton className="h-4 w-5/6" />
       </div>
-      <div className="p-4 pt-0 space-x-2">
-        <Skeleton className="h-6 w-16 inline-block" />
-        <Skeleton className="h-6 w-20 inline-block" />
+      <div className="p-6 pt-0 flex flex-col items-start gap-4">
+        <div className="flex flex-wrap gap-2">
+            <Skeleton className="h-6 w-16 inline-block rounded-full" />
+            <Skeleton className="h-6 w-20 inline-block rounded-full" />
+        </div>
+        <Skeleton className="h-5 w-24" />
       </div>
     </div>
   )

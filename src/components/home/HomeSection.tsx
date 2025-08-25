@@ -1,3 +1,4 @@
+
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -14,13 +15,31 @@ export default function HomeSection() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    const cacheKey = 'homeDataCache';
+    const cachedData = localStorage.getItem(cacheKey);
+    const now = new Date().getTime();
+
+    if (cachedData) {
+      const { timestamp, data } = JSON.parse(cachedData);
+      // Cache is valid for 24 hours
+      if (now - timestamp < 24 * 60 * 60 * 1000) {
+        setHomeData(data);
+        setLoading(false);
+        return;
+      }
+    }
+    
     const homeRef = ref(db, 'home')
     const unsubscribe = onValue(homeRef, (snapshot) => {
       const data = snapshot.val()
       if (data) {
         setHomeData(data)
+        localStorage.setItem(cacheKey, JSON.stringify({ timestamp: now, data }));
       }
       setLoading(false)
+    }, (error) => {
+      console.error("Firebase read failed: " + error.message);
+      setLoading(false);
     });
 
     return () => unsubscribe()

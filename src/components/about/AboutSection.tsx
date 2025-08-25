@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -22,13 +23,30 @@ export default function AboutSection() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const cacheKey = 'aboutDataCache';
+    const cachedData = localStorage.getItem(cacheKey);
+    const now = new Date().getTime();
+
+    if (cachedData) {
+        const { timestamp, data } = JSON.parse(cachedData);
+        if (now - timestamp < 24 * 60 * 60 * 1000) {
+            setAboutData(data);
+            setLoading(false);
+            return;
+        }
+    }
+
     const aboutRef = ref(db, 'about');
     const unsubscribe = onValue(aboutRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
         setAboutData(data);
+        localStorage.setItem(cacheKey, JSON.stringify({ timestamp: now, data }));
       }
       setLoading(false);
+    }, (error) => {
+        console.error("Firebase read failed: " + error.message);
+        setLoading(false);
     });
 
     return () => unsubscribe();
@@ -38,19 +56,27 @@ export default function AboutSection() {
     return (
       <section id="about" className="bg-background py-16">
         <div className="container mx-auto px-4">
-          <Skeleton className="h-10 w-48 mx-auto mb-4" />
-          <Skeleton className="h-6 w-96 mx-auto mb-12" />
+          <div className="flex flex-col items-center text-center space-y-4 mb-12">
+            <Skeleton className="h-10 w-48" />
+            <Skeleton className="h-6 w-96" />
+          </div>
           <div className="grid gap-12 lg:grid-cols-5">
             <div className="lg:col-span-2 flex justify-center">
               <Skeleton className="w-[300px] h-[400px] md:w-[400px] md:h-[533px] rounded-lg" />
             </div>
             <div className="lg:col-span-3 space-y-6">
               <Skeleton className="h-8 w-1/2" />
-              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-6 w-full" />
+              <Skeleton className="h-6 w-full" />
+              <Skeleton className="h-6 w-3/4" />
               <Skeleton className="h-8 w-1/3 mt-4" />
               <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                 {[...Array(8)].map((_, i) => (
-                  <Skeleton key={i} className="h-32 w-full rounded-lg" />
+                  <div key={i} className="flex flex-col items-center space-y-2 p-4 border rounded-lg">
+                     <Skeleton className="h-8 w-8 rounded-full" />
+                     <Skeleton className="h-5 w-20" />
+                     <Skeleton className="h-4 w-24" />
+                  </div>
                 ))}
               </div>
             </div>

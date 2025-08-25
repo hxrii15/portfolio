@@ -1,3 +1,4 @@
+
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -14,6 +15,19 @@ export default function EducationSection() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    const cacheKey = 'educationDataCache';
+    const cachedData = localStorage.getItem(cacheKey);
+    const now = new Date().getTime();
+
+    if (cachedData) {
+        const { timestamp, data } = JSON.parse(cachedData);
+        if (now - timestamp < 24 * 60 * 60 * 1000) {
+            setEducationData(data);
+            setLoading(false);
+            return;
+        }
+    }
+
     const educationRef = ref(db, 'education')
     const unsubscribe = onValue(educationRef, (snapshot) => {
       const data = snapshot.val()
@@ -23,10 +37,14 @@ export default function EducationSection() {
           ...data[key]
         })).sort((a, b) => (b.current ? 1 : -1)); // Keep current education on top
         setEducationData(educationList)
+        localStorage.setItem(cacheKey, JSON.stringify({ timestamp: now, data: educationList }));
       } else {
         setEducationData([])
       }
       setLoading(false)
+    }, (error) => {
+        console.error("Firebase read failed: " + error.message);
+        setLoading(false);
     });
 
     return () => unsubscribe();
@@ -41,15 +59,23 @@ export default function EducationSection() {
         </div>
         <div className="relative">
            {loading ? (
-             <div className="space-y-8">
+             <div className="space-y-8 max-w-2xl mx-auto">
+               <div className="absolute left-1/2 top-0 h-full w-0.5 -translate-x-1/2 bg-border"></div>
                {[...Array(2)].map((_, i) => (
-                  <div key={i} className="relative flex w-full items-center justify-between md:odd:flex-row-reverse">
+                  <div key={i} className={`relative flex w-full items-center justify-between ${i % 2 !== 0 ? 'md:flex-row-reverse' : ''}`}>
                     <div className="hidden md:block w-5/12"></div>
-                    <div className="z-10 flex h-10 w-10 items-center justify-center rounded-full bg-muted"></div>
+                    <div className="z-10 flex h-10 w-10 items-center justify-center rounded-full bg-muted ring-8 ring-background">
+                        <Skeleton className="h-5 w-5" />
+                    </div>
                     <div className="w-full md:w-5/12">
                        <Card>
-                          <CardHeader><Skeleton className="h-6 w-3/4" /></CardHeader>
-                          <CardContent><Skeleton className="h-4 w-1/2" /></CardContent>
+                          <CardHeader>
+                            <Skeleton className="h-6 w-3/4" />
+                            <Skeleton className="h-4 w-1/2 mt-2" />
+                          </CardHeader>
+                          <CardContent>
+                            <Skeleton className="h-5 w-2/3" />
+                          </CardContent>
                        </Card>
                     </div>
                   </div>
@@ -58,28 +84,30 @@ export default function EducationSection() {
            ) : (
             <>
               {educationData.length > 0 && <div className="absolute left-1/2 top-0 h-full w-0.5 -translate-x-1/2 bg-border"></div>}
-              {educationData.map((item) => (
-                <div key={item.id} className="relative mb-8 flex w-full items-center justify-between md:odd:flex-row-reverse">
-                  <div className="hidden md:block w-5/12"></div>
-                  <div className="z-10 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md">
-                    <GraduationCap className="h-5 w-5" />
+              <div className="max-w-2xl mx-auto">
+                {educationData.map((item, index) => (
+                  <div key={item.id} className={`relative mb-8 flex w-full items-center justify-between ${index % 2 !== 0 ? 'md:flex-row-reverse' : ''}`}>
+                    <div className="hidden md:block w-5/12"></div>
+                    <div className="z-10 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md ring-8 ring-background">
+                      <GraduationCap className="h-5 w-5" />
+                    </div>
+                    <div className="w-full md:w-5/12">
+                      <Card className="shadow-lg hover:shadow-xl transition-shadow">
+                        <CardHeader>
+                          <div className="flex justify-between items-start">
+                            <CardTitle className="font-headline text-xl">{item.institution}</CardTitle>
+                            {item.current && <Badge>Current</Badge>}
+                          </div>
+                          <p className="text-sm text-muted-foreground">{item.duration}</p>
+                        </CardHeader>
+                        <CardContent>
+                          <p>{item.degree}</p>
+                        </CardContent>
+                      </Card>
+                    </div>
                   </div>
-                  <div className="w-full md:w-5/12">
-                    <Card className="shadow-lg hover:shadow-xl transition-shadow">
-                      <CardHeader>
-                        <div className="flex justify-between items-start">
-                          <CardTitle className="font-headline text-xl">{item.institution}</CardTitle>
-                          {item.current && <Badge>Current</Badge>}
-                        </div>
-                        <p className="text-sm text-muted-foreground">{item.duration}</p>
-                      </CardHeader>
-                      <CardContent>
-                        <p>{item.degree}</p>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </>
            )}
            {!loading && educationData.length === 0 && (
