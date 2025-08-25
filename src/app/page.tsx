@@ -11,6 +11,15 @@ import fs from 'fs';
 import path from 'path';
 import matter from 'gray-matter';
 import type { BlogPost } from '@/lib/data';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Home | Hariharan Portfolio',
+  description: "Welcome to the personal portfolio of Hariharan. Explore my projects, skills, and journey as a full-stack developer and AI enthusiast.",
+  alternates: {
+    canonical: '/',
+  },
+};
 
 async function getBlogPosts(): Promise<BlogPost[]> {
     try {
