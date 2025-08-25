@@ -3,13 +3,13 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDbd_ElhFwkQ_UuFMre_wBjvMpTlVfLkZ0",
-  authDomain: "portfoliohariharanm.firebaseapp.com",
-  projectId: "portfoliohariharanm",
-  storageBucket: "portfoliohariharanm.firebasestorage.app",
-  messagingSenderId: "201357903425",
-  appId: "1:201357903425:web:84f088a3cf3caa3637a8c0",
-  measurementId: "G-SS326RMLT3"
+  apiKey: "AIzaSyDfyQEPAyT60t1suyGTK6WN85KTtuNeXyM",
+  authDomain: "hariharan-portfolio-6b3yt.firebaseapp.com",
+  databaseURL: "https://hariharan-portfolio-6b3yt-default-rtdb.firebaseio.com",
+  projectId: "hariharan-portfolio-6b3yt",
+  storageBucket: "hariharan-portfolio-6b3yt.firebasestorage.app",
+  messagingSenderId: "541714079704",
+  appId: "1:541714079704:web:ad0514d8cdbf7f2804dcad"
 };
 
 // Initialize Firebase

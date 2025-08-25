@@ -13,27 +13,29 @@ if (!getApps().length) {
   const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
   if (serviceAccountKey) {
     try {
+      // The key is a JSON string, so it needs to be parsed.
       const serviceAccount = JSON.parse(serviceAccountKey)
       initializeApp({
         credential: credential.cert(serviceAccount),
       });
     } catch (error) {
-      console.error("Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY:", error);
+      console.error("Failed to parse or use FIREBASE_SERVICE_ACCOUNT_KEY:", error);
     }
   } else {
-    console.warn("FIREBASE_SERVICE_ACCOUNT_KEY is not set. Admin features will be disabled.");
+    console.warn("FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set. Admin features requiring server-side verification will be disabled.");
   }
 }
 
 export async function createSession(idToken: string) {
+  // Ensure the Admin SDK is initialized before proceeding
   if (!getApps().length) {
-    return { success: false, message: 'Server is not configured for authentication.' };
+    return { success: false, message: 'Server is not configured for authentication. Please check server logs for details on the service account key.' };
   }
   try {
     const decodedToken = await getAdminAuth().verifyIdToken(idToken);
     
     if (decodedToken.email !== "hariharanmanii15@gmail.com") {
-      return { success: false, message: 'Access denied. Not an admin user.' };
+      return { success: false, message: 'Access denied. You are not the authorized admin user.' };
     }
 
     cookies().set('auth-token', idToken, {
@@ -45,7 +47,7 @@ export async function createSession(idToken: string) {
     return { success: true }
 
   } catch (error: any) {
-    console.error("Session creation failed:", error);
+    console.error("Session creation failed due to token verification error:", error);
     return { success: false, message: 'Failed to create a session. Please check server logs.' }
   }
 }
