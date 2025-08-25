@@ -1,10 +1,11 @@
+
 'use client'
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
-import { Menu, Briefcase, UserCircle } from 'lucide-react'
+import { Menu, Briefcase } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navLinks = [
@@ -55,12 +56,6 @@ export default function Header() {
           {link.label}
         </a>
       ))}
-      <Link href="/admin/login">
-        <Button variant="ghost" size={isMobile ? 'lg' : 'sm'}>
-          <UserCircle className="mr-2 h-4 w-4" />
-          Admin
-        </Button>
-      </Link>
     </>
   )
 

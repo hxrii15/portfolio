@@ -1,9 +1,12 @@
+
 import Image from 'next/image'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Clock } from 'lucide-react'
 import type { BlogPost } from '@/lib/data'
+import ReactMarkdown from 'react-markdown'
 
 type BlogCardProps = {
   post: BlogPost
@@ -57,10 +60,11 @@ export default function BlogCard({ post }: BlogCardProps) {
               </div>
           </div>
         </DialogHeader>
-        <div
-          className="py-4 prose dark:prose-invert max-h-[60vh] overflow-y-auto"
-          dangerouslySetInnerHTML={{ __html: post.content }}
-        />
+        <ScrollArea className="max-h-[60vh] pr-6">
+            <div className="py-4 prose dark:prose-invert">
+                <ReactMarkdown>{post.content}</ReactMarkdown>
+            </div>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   )
