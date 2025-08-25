@@ -10,7 +10,7 @@ import { getAuth as getAdminAuth } from 'firebase-admin/auth'
 
 // Initialize Firebase Admin SDK if not already initialized
 if (!getApps().length) {
-  const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
+  const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
   if (serviceAccountKey) {
     try {
       // The key is a JSON string, so it needs to be parsed.
