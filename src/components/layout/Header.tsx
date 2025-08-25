@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
-import { Menu, Briefcase } from 'lucide-react'
+import { Menu } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const mainNavLinks = [
@@ -93,7 +93,6 @@ export default function Header() {
     <header className={cn('sticky top-0 z-50 w-full transition-all duration-300', isScrolled ? 'border-b bg-background/80 backdrop-blur-sm' : 'bg-background')}>
       <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
         <Link href="/" className="flex items-center gap-2" onClick={() => setActiveLink('/')}>
-          <Briefcase className="h-6 w-6 text-primary" />
           <span className="font-headline text-xl font-bold">Hariharan</span>
         </Link>
         <nav className="hidden items-center gap-6 md:flex">
