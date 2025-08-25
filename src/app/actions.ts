@@ -5,34 +5,35 @@ import { cookies } from 'next/headers'
 import { z } from 'zod'
 import { portfolioAssistant } from '@/ai/flows/portfolio-assistant'
 import { credential } from 'firebase-admin'
-import { initializeApp, getApps } from 'firebase-admin/app'
+import { initializeApp, getApps, App } from 'firebase-admin/app'
 import { getAuth as getAdminAuth } from 'firebase-admin/auth'
 
-// Initialize Firebase Admin SDK if not already initialized
-if (!getApps().length) {
+function getAdminApp(): App {
+  if (getApps().length > 0) {
+    return getApps()[0];
+  }
+
   const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-  if (serviceAccountKey) {
-    try {
-      // The key is a JSON string, so it needs to be parsed.
-      const serviceAccount = JSON.parse(serviceAccountKey)
-      initializeApp({
-        credential: credential.cert(serviceAccount),
-      });
-    } catch (error) {
-      console.error("Failed to parse or use FIREBASE_SERVICE_ACCOUNT_KEY:", error);
-    }
-  } else {
-    console.warn("FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set. Admin features requiring server-side verification will be disabled.");
+  if (!serviceAccountKey) {
+    throw new Error('FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set. Admin features will be disabled.');
+  }
+
+  try {
+    const serviceAccount = JSON.parse(serviceAccountKey);
+    return initializeApp({
+      credential: credential.cert(serviceAccount),
+    });
+  } catch (error) {
+    console.error("Failed to parse or use FIREBASE_SERVICE_ACCOUNT_KEY:", error);
+    throw new Error('Server configuration error. Could not initialize Firebase Admin SDK.');
   }
 }
 
+
 export async function createSession(idToken: string) {
-  // Ensure the Admin SDK is initialized before proceeding
-  if (!getApps().length) {
-    return { success: false, message: 'Server is not configured for authentication. Please check server logs for details on the service account key.' };
-  }
   try {
-    const decodedToken = await getAdminAuth().verifyIdToken(idToken);
+    const adminApp = getAdminApp();
+    const decodedToken = await getAdminAuth(adminApp).verifyIdToken(idToken);
     
     if (decodedToken.email !== "hariharanmanii15@gmail.com") {
       return { success: false, message: 'Access denied. You are not the authorized admin user.' };
@@ -47,8 +48,8 @@ export async function createSession(idToken: string) {
     return { success: true }
 
   } catch (error: any) {
-    console.error("Session creation failed due to token verification error:", error);
-    return { success: false, message: 'Failed to create a session. Please check server logs.' }
+    console.error("Session creation failed:", error.message);
+    return { success: false, message: 'Failed to create a session. Please check server logs for details.' }
   }
 }
 
@@ -79,12 +80,13 @@ export async function askAI(data: unknown) {
 export async function verifyAuth() {
   const authToken = cookies().get('auth-token')?.value;
 
-  if (!authToken || !getApps().length) {
+  if (!authToken) {
     return { isAuthenticated: false };
   }
 
   try {
-    const decodedToken = await getAdminAuth().verifyIdToken(authToken);
+    const adminApp = getAdminApp();
+    const decodedToken = await getAdminAuth(adminApp).verifyIdToken(authToken);
     if (decodedToken.email === 'hariharanmanii15@gmail.com') {
       return { isAuthenticated: true, email: decodedToken.email };
     }
