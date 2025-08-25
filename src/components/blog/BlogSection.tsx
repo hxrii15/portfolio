@@ -19,16 +19,19 @@ export default function BlogSection() {
   
   useEffect(() => {
     const cacheKey = 'blogDataCache';
-    const cachedData = localStorage.getItem(cacheKey);
-    const now = new Date().getTime();
+    try {
+      const cachedData = localStorage.getItem(cacheKey);
+      const now = new Date().getTime();
 
-    if (cachedData) {
-        const { timestamp, data } = JSON.parse(cachedData);
-        if (now - timestamp < 24 * 60 * 60 * 1000) {
-            setBlogData(data);
-            setLoading(false);
-            return;
-        }
+      if (cachedData) {
+          const { timestamp, data } = JSON.parse(cachedData);
+          if (now - timestamp < 24 * 60 * 60 * 1000) {
+              setBlogData(data);
+              setLoading(false);
+          }
+      }
+    } catch (e) {
+      console.error("Failed to read from localStorage", e);
     }
 
     const blogRef = ref(db, 'blog');
@@ -40,7 +43,12 @@ export default function BlogSection() {
           ...data[key]
         }));
         setBlogData(blogList);
-        localStorage.setItem(cacheKey, JSON.stringify({ timestamp: now, data: blogList }));
+        try {
+          const now = new Date().getTime();
+          localStorage.setItem(cacheKey, JSON.stringify({ timestamp: now, data: blogList }));
+        } catch (e) {
+           console.error("Failed to write to localStorage", e);
+        }
       } else {
         setBlogData([]);
       }

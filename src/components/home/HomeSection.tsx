@@ -16,17 +16,20 @@ export default function HomeSection() {
 
   useEffect(() => {
     const cacheKey = 'homeDataCache';
-    const cachedData = localStorage.getItem(cacheKey);
-    const now = new Date().getTime();
+    try {
+      const cachedData = localStorage.getItem(cacheKey);
+      const now = new Date().getTime();
 
-    if (cachedData) {
-      const { timestamp, data } = JSON.parse(cachedData);
-      // Cache is valid for 24 hours
-      if (now - timestamp < 24 * 60 * 60 * 1000) {
-        setHomeData(data);
-        setLoading(false);
-        return;
+      if (cachedData) {
+        const { timestamp, data } = JSON.parse(cachedData);
+        // If cache is less than 24 hours old, use it initially
+        if (now - timestamp < 24 * 60 * 60 * 1000) {
+          setHomeData(data);
+          setLoading(false);
+        }
       }
+    } catch (e) {
+      console.error("Failed to read from localStorage", e);
     }
     
     const homeRef = ref(db, 'home')
@@ -34,7 +37,12 @@ export default function HomeSection() {
       const data = snapshot.val()
       if (data) {
         setHomeData(data)
-        localStorage.setItem(cacheKey, JSON.stringify({ timestamp: now, data }));
+        try {
+          const now = new Date().getTime();
+          localStorage.setItem(cacheKey, JSON.stringify({ timestamp: now, data }));
+        } catch(e) {
+          console.error("Failed to write to localStorage", e);
+        }
       }
       setLoading(false)
     }, (error) => {

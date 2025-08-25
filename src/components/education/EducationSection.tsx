@@ -16,16 +16,19 @@ export default function EducationSection() {
 
   useEffect(() => {
     const cacheKey = 'educationDataCache';
-    const cachedData = localStorage.getItem(cacheKey);
-    const now = new Date().getTime();
+    try {
+      const cachedData = localStorage.getItem(cacheKey);
+      const now = new Date().getTime();
 
-    if (cachedData) {
-        const { timestamp, data } = JSON.parse(cachedData);
-        if (now - timestamp < 24 * 60 * 60 * 1000) {
-            setEducationData(data);
-            setLoading(false);
-            return;
-        }
+      if (cachedData) {
+          const { timestamp, data } = JSON.parse(cachedData);
+          if (now - timestamp < 24 * 60 * 60 * 1000) {
+              setEducationData(data);
+              setLoading(false);
+          }
+      }
+    } catch (e) {
+        console.error("Failed to read from localStorage", e);
     }
 
     const educationRef = ref(db, 'education')
@@ -37,7 +40,12 @@ export default function EducationSection() {
           ...data[key]
         })).sort((a, b) => (b.current ? 1 : -1)); // Keep current education on top
         setEducationData(educationList)
-        localStorage.setItem(cacheKey, JSON.stringify({ timestamp: now, data: educationList }));
+        try {
+            const now = new Date().getTime();
+            localStorage.setItem(cacheKey, JSON.stringify({ timestamp: now, data: educationList }));
+        } catch(e) {
+            console.error("Failed to write to localStorage", e);
+        }
       } else {
         setEducationData([])
       }

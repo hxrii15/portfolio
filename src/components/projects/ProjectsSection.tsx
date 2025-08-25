@@ -19,16 +19,19 @@ export default function ProjectsSection() {
 
   useEffect(() => {
     const cacheKey = 'projectsDataCache';
-    const cachedData = localStorage.getItem(cacheKey);
-    const now = new Date().getTime();
+    try {
+      const cachedData = localStorage.getItem(cacheKey);
+      const now = new Date().getTime();
 
-    if (cachedData) {
-        const { timestamp, data } = JSON.parse(cachedData);
-        if (now - timestamp < 24 * 60 * 60 * 1000) {
-            setProjectsData(data);
-            setLoading(false);
-            return;
-        }
+      if (cachedData) {
+          const { timestamp, data } = JSON.parse(cachedData);
+          if (now - timestamp < 24 * 60 * 60 * 1000) {
+              setProjectsData(data);
+              setLoading(false);
+          }
+      }
+    } catch (e) {
+      console.error("Failed to read from localStorage", e);
     }
 
     const projectsRef = ref(db, 'projects');
@@ -40,7 +43,12 @@ export default function ProjectsSection() {
           ...data[key]
         }));
         setProjectsData(projectsList);
-        localStorage.setItem(cacheKey, JSON.stringify({ timestamp: now, data: projectsList }));
+        try {
+          const now = new Date().getTime();
+          localStorage.setItem(cacheKey, JSON.stringify({ timestamp: now, data: projectsList }));
+        } catch (e) {
+           console.error("Failed to write to localStorage", e);
+        }
       } else {
         setProjectsData([]);
       }

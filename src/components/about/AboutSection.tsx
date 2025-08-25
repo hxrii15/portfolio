@@ -24,16 +24,19 @@ export default function AboutSection() {
 
   useEffect(() => {
     const cacheKey = 'aboutDataCache';
-    const cachedData = localStorage.getItem(cacheKey);
-    const now = new Date().getTime();
+    try {
+        const cachedData = localStorage.getItem(cacheKey);
+        const now = new Date().getTime();
 
-    if (cachedData) {
-        const { timestamp, data } = JSON.parse(cachedData);
-        if (now - timestamp < 24 * 60 * 60 * 1000) {
-            setAboutData(data);
-            setLoading(false);
-            return;
+        if (cachedData) {
+            const { timestamp, data } = JSON.parse(cachedData);
+            if (now - timestamp < 24 * 60 * 60 * 1000) {
+                setAboutData(data);
+                setLoading(false);
+            }
         }
+    } catch (e) {
+      console.error("Failed to read from localStorage", e);
     }
 
     const aboutRef = ref(db, 'about');
@@ -41,7 +44,12 @@ export default function AboutSection() {
       const data = snapshot.val();
       if (data) {
         setAboutData(data);
-        localStorage.setItem(cacheKey, JSON.stringify({ timestamp: now, data }));
+        try {
+            const now = new Date().getTime();
+            localStorage.setItem(cacheKey, JSON.stringify({ timestamp: now, data }));
+        } catch (e) {
+            console.error("Failed to write to localStorage", e);
+        }
       }
       setLoading(false);
     }, (error) => {
@@ -54,7 +62,7 @@ export default function AboutSection() {
 
   if (loading) {
     return (
-      <section id="about" className="bg-background py-16">
+      <section id="about" className="bg-secondary py-16">
         <div className="container mx-auto px-4">
           <div className="flex flex-col items-center text-center space-y-4 mb-12">
             <Skeleton className="h-10 w-48" />
@@ -87,11 +95,11 @@ export default function AboutSection() {
   }
 
   if (!aboutData) {
-    return <section id="about" className="bg-background py-20 text-center">No content available.</section>;
+    return <section id="about" className="bg-secondary py-20 text-center">No content available.</section>;
   }
 
   return (
-    <section id="about" className="bg-background">
+    <section id="about" className="bg-secondary">
       <div className="container mx-auto flex flex-col items-center gap-12 px-4 md:px-6">
         <div className="flex flex-col items-center text-center space-y-4">
           <h2 className="font-headline text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">{aboutData.title}</h2>
