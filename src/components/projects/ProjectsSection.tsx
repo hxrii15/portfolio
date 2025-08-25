@@ -1,17 +1,41 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { projectsData } from '@/lib/data'
+import type { Project } from '@/lib/data'
 import ProjectCard from './ProjectCard'
-
-const allTags = Array.from(new Set(projectsData.flatMap(p => p.tags)))
+import { db } from '@/lib/firebase'
+import { ref, onValue } from 'firebase/database'
+import { Skeleton } from '../ui/skeleton'
 
 export default function ProjectsSection() {
+  const [projectsData, setProjectsData] = useState<Project[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedTag, setSelectedTag] = useState('all')
+
+  useEffect(() => {
+    const projectsRef = ref(db, 'projects');
+    const unsubscribe = onValue(projectsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const projectsList: Project[] = Object.keys(data).map(key => ({
+          id: key,
+          ...data[key]
+        }));
+        setProjectsData(projectsList);
+      } else {
+        setProjectsData([]);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+  
+  const allTags = useMemo(() => Array.from(new Set(projectsData.flatMap(p => p.tags))), [projectsData]);
 
   const filteredProjects = useMemo(() => {
     return projectsData.filter(project => {
@@ -20,7 +44,7 @@ export default function ProjectsSection() {
       const tagMatch = selectedTag === 'all' || project.tags.includes(selectedTag)
       return searchMatch && tagMatch
     })
-  }, [searchQuery, selectedTag])
+  }, [searchQuery, selectedTag, projectsData])
 
   return (
     <section id="projects" className="bg-background">
@@ -39,7 +63,7 @@ export default function ProjectsSection() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
           <div className="flex items-center gap-2">
-            <Select onValueChange={setSelectedTag} defaultValue="all">
+            <Select onValueChange={setSelectedTag} defaultValue="all" value={selectedTag}>
               <SelectTrigger className="w-full md:w-[180px]">
                 <SelectValue placeholder="Filter by tag" />
               </SelectTrigger>
@@ -56,10 +80,16 @@ export default function ProjectsSection() {
           </div>
         </div>
 
-        {filteredProjects.length > 0 ? (
+        {loading ? (
+           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {[...Array(3)].map((_, index) => (
+              <CardSkeleton key={index} />
+            ))}
+          </div>
+        ) : filteredProjects.length > 0 ? (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {filteredProjects.map((project, index) => (
-              <ProjectCard key={index} project={project} />
+            {filteredProjects.map((project) => (
+              <ProjectCard key={project.id} project={project} />
             ))}
           </div>
         ) : (
@@ -69,5 +99,22 @@ export default function ProjectsSection() {
         )}
       </div>
     </section>
+  )
+}
+
+function CardSkeleton() {
+  return (
+    <div className="flex flex-col space-y-3">
+      <Skeleton className="h-[225px] w-full rounded-xl" />
+      <div className="space-y-2 p-4">
+        <Skeleton className="h-6 w-3/4" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-5/6" />
+      </div>
+      <div className="p-4 pt-0 space-x-2">
+        <Skeleton className="h-6 w-16 inline-block" />
+        <Skeleton className="h-6 w-20 inline-block" />
+      </div>
+    </div>
   )
 }

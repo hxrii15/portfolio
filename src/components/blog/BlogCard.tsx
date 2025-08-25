@@ -3,16 +3,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Clock } from 'lucide-react'
+import type { BlogPost } from '@/lib/data'
 
 type BlogCardProps = {
-  post: {
-    title: string;
-    description: string;
-    image: string;
-    tags: string[];
-    readTime: string;
-    content: string;
-  }
+  post: BlogPost
 }
 
 export default function BlogCard({ post }: BlogCardProps) {
@@ -64,7 +58,7 @@ export default function BlogCard({ post }: BlogCardProps) {
           </div>
         </DialogHeader>
         <div
-          className="py-4 prose dark:prose-invert"
+          className="py-4 prose dark:prose-invert max-h-[60vh] overflow-y-auto"
           dangerouslySetInnerHTML={{ __html: post.content }}
         />
       </DialogContent>

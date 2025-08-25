@@ -1,7 +1,7 @@
-
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useTransition } from 'react'
+import { useForm, Controller } from 'react-hook-form'
 import {
   Table,
   TableBody,
@@ -18,48 +18,88 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import { educationData as initialEducationData } from '@/lib/data'
-import { Edit, Trash2, PlusCircle } from 'lucide-react'
+import { db } from '@/lib/firebase'
+import { ref, onValue, set, remove, push } from 'firebase/database'
+import type { Education } from '@/lib/data'
+import { Edit, Trash2, PlusCircle, Loader2 } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
 
 export function EducationManager() {
-  const [educationData, setEducationData] = useState(initialEducationData)
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [educationData, setEducationData] = useState<Education[]>([])
+  const [loading, setLoading] = useState(true)
+  const [isFormOpen, setIsFormOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [selectedEducation, setSelectedEducation] = useState<any>(null)
+  const [selectedEducation, setSelectedEducation] = useState<Education | null>(null)
+  const [isPending, startTransition] = useTransition()
+  const { toast } = useToast()
 
-  const handleEdit = (item: any) => {
+  const { register, handleSubmit, reset, control } = useForm<Omit<Education, 'id'>>()
+
+  useEffect(() => {
+    const educationRef = ref(db, 'education');
+    const unsubscribe = onValue(educationRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const educationList = Object.keys(data).map(key => ({
+          id: key,
+          ...data[key]
+        }));
+        setEducationData(educationList);
+      } else {
+        setEducationData([])
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const handleOpenForm = (item: Education | null = null) => {
     setSelectedEducation(item)
-    setIsEditDialogOpen(true)
+    reset(item || { institution: '', degree: '', duration: '', current: false })
+    setIsFormOpen(true)
   }
 
-  const handleDelete = (item: any) => {
+  const handleDelete = (item: Education) => {
     setSelectedEducation(item)
     setIsDeleteDialogOpen(true)
   }
 
   const confirmDelete = () => {
-    // Note: This only updates the state. It won't persist without a backend.
-    setEducationData(educationData.filter(e => e.institution !== selectedEducation.institution))
-    setIsDeleteDialogOpen(false)
-    setSelectedEducation(null)
+    if (!selectedEducation) return;
+    startTransition(async () => {
+      try {
+        await remove(ref(db, `education/${selectedEducation.id}`));
+        toast({ title: 'Success', description: 'Education entry deleted.' });
+        setIsDeleteDialogOpen(false);
+        setSelectedEducation(null);
+      } catch (error) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete entry.' });
+      }
+    });
   }
-  
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Logic to save the edited item. For now, it just closes the dialog.
-    // To persist, you'd update state and call a backend API.
-    setIsEditDialogOpen(false);
-  }
+
+  const onSubmit = (data: Omit<Education, 'id'>) => {
+    startTransition(async () => {
+      try {
+        const id = selectedEducation?.id || push(ref(db, 'education')).key;
+        await set(ref(db, `education/${id}`), data);
+        toast({ title: 'Success', description: 'Education entry saved.' });
+        setIsFormOpen(false);
+      } catch (error) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to save entry.' });
+      }
+    });
+  };
 
   return (
     <div>
       <div className="flex justify-end mb-4">
-        <Button>
+        <Button onClick={() => handleOpenForm()}>
           <PlusCircle className="mr-2 h-4 w-4" /> Add New
         </Button>
       </div>
@@ -75,58 +115,75 @@ export function EducationManager() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {educationData.map((item) => (
-              <TableRow key={item.institution}>
-                <TableCell className="font-medium">{item.institution}</TableCell>
-                <TableCell>{item.degree}</TableCell>
-                <TableCell>{item.duration}</TableCell>
-                <TableCell>{item.current ? 'Yes' : 'No'}</TableCell>
-                <TableCell className="text-right">
-                  <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" onClick={() => handleDelete(item)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </TableCell>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center">Loading...</TableCell>
               </TableRow>
-            ))}
+            ) : educationData.length > 0 ? (
+              educationData.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell className="font-medium">{item.institution}</TableCell>
+                  <TableCell>{item.degree}</TableCell>
+                  <TableCell>{item.duration}</TableCell>
+                  <TableCell>{item.current ? 'Yes' : 'No'}</TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="ghost" size="icon" onClick={() => handleOpenForm(item)}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => handleDelete(item)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+               <TableRow>
+                <TableCell colSpan={5} className="text-center">No education entries found.</TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>
 
-      {/* Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      {/* Edit/Add Dialog */}
+      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Education</DialogTitle>
+            <DialogTitle>{selectedEducation ? 'Edit' : 'Add'} Education</DialogTitle>
           </DialogHeader>
-          {selectedEducation && (
-            <form onSubmit={handleSave}>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="institution" className="text-right">Institution</Label>
-                  <Input id="institution" defaultValue={selectedEducation.institution} className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="degree" className="text-right">Degree</Label>
-                  <Input id="degree" defaultValue={selectedEducation.degree} className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="duration" className="text-right">Duration</Label>
-                  <Input id="duration" defaultValue={selectedEducation.duration} className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="current" className="text-right">Current</Label>
-                  <Checkbox id="current" defaultChecked={selectedEducation.current} />
-                </div>
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="institution" className="text-right">Institution</Label>
+                <Input id="institution" {...register('institution', { required: true })} className="col-span-3" />
               </div>
-              <DialogFooter>
-                <Button type="button" variant="secondary" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
-                <Button type="submit">Save changes</Button>
-              </DialogFooter>
-            </form>
-          )}
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="degree" className="text-right">Degree</Label>
+                <Input id="degree" {...register('degree', { required: true })} className="col-span-3" />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="duration" className="text-right">Duration</Label>
+                <Input id="duration" {...register('duration', { required: true })} className="col-span-3" />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="current" className="text-right">Current</Label>
+                <Controller
+                  name="current"
+                  control={control}
+                  render={({ field }) => (
+                    <Checkbox id="current" checked={field.value} onCheckedChange={field.onChange} />
+                  )}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="secondary" onClick={() => setIsFormOpen(false)} disabled={isPending}>Cancel</Button>
+              <Button type="submit" disabled={isPending}>
+                {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save changes
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
@@ -140,8 +197,11 @@ export function EducationManager() {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="secondary" onClick={() => setIsDeleteDialogOpen(false)}>Cancel</Button>
-            <Button variant="destructive" onClick={confirmDelete}>Delete</Button>
+            <Button variant="secondary" onClick={() => setIsDeleteDialogOpen(false)} disabled={isPending}>Cancel</Button>
+            <Button variant="destructive" onClick={confirmDelete} disabled={isPending}>
+              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Delete
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

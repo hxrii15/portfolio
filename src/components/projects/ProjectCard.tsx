@@ -4,16 +4,10 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Eye, Code2 } from 'lucide-react'
+import type { Project } from '@/lib/data'
 
 type ProjectCardProps = {
-  project: {
-    title: string;
-    description: string;
-    image: string;
-    tags: string[];
-    link: string;
-    details: string;
-  }
+  project: Project
 }
 
 export default function ProjectCard({ project }: ProjectCardProps) {
@@ -54,7 +48,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
             ))}
           </div>
         </DialogHeader>
-        <div className="py-4">
+        <div className="py-4 max-h-[60vh] overflow-y-auto">
           <div className="aspect-video relative rounded-md overflow-hidden mb-4">
             <Image
               src={project.image}

@@ -1,17 +1,41 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { blogData } from '@/lib/data'
+import type { BlogPost } from '@/lib/data'
 import BlogCard from './BlogCard'
 import { Button } from '../ui/button'
-
-const allTags = Array.from(new Set(blogData.flatMap(p => p.tags)))
+import { db } from '@/lib/firebase'
+import { ref, onValue } from 'firebase/database'
+import { Skeleton } from '../ui/skeleton'
 
 export default function BlogSection() {
+  const [blogData, setBlogData] = useState<BlogPost[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedTag, setSelectedTag] = useState('all')
+  
+  useEffect(() => {
+    const blogRef = ref(db, 'blog');
+    const unsubscribe = onValue(blogRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const blogList: BlogPost[] = Object.keys(data).map(key => ({
+          id: key,
+          ...data[key]
+        }));
+        setBlogData(blogList);
+      } else {
+        setBlogData([]);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const allTags = useMemo(() => Array.from(new Set(blogData.flatMap(p => p.tags))), [blogData]);
 
   const filteredBlogs = useMemo(() => {
     return blogData.filter(blog => {
@@ -20,7 +44,7 @@ export default function BlogSection() {
       const tagMatch = selectedTag === 'all' || blog.tags.includes(selectedTag)
       return searchMatch && tagMatch
     })
-  }, [searchQuery, selectedTag])
+  }, [searchQuery, selectedTag, blogData])
 
   return (
     <section id="blog" className="bg-secondary">
@@ -39,7 +63,7 @@ export default function BlogSection() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
            <div className="flex items-center gap-2">
-            <Select onValueChange={setSelectedTag} defaultValue="all">
+            <Select onValueChange={setSelectedTag} defaultValue="all" value={selectedTag}>
               <SelectTrigger className="w-full md:w-[180px]">
                 <SelectValue placeholder="Filter by tag" />
               </SelectTrigger>
@@ -55,11 +79,17 @@ export default function BlogSection() {
             )}
           </div>
         </div>
-
-        {filteredBlogs.length > 0 ? (
+        
+        {loading ? (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {filteredBlogs.map((post, index) => (
-              <BlogCard key={index} post={post} />
+            {[...Array(3)].map((_, index) => (
+              <CardSkeleton key={index} />
+            ))}
+          </div>
+        ) : filteredBlogs.length > 0 ? (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {filteredBlogs.map((post) => (
+              <BlogCard key={post.id} post={post} />
             ))}
           </div>
         ) : (
@@ -69,5 +99,22 @@ export default function BlogSection() {
         )}
       </div>
     </section>
+  )
+}
+
+function CardSkeleton() {
+  return (
+    <div className="flex flex-col space-y-3">
+      <Skeleton className="h-[225px] w-full rounded-xl" />
+      <div className="space-y-2 p-4">
+        <Skeleton className="h-6 w-3/4" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-5/6" />
+      </div>
+      <div className="p-4 pt-0 space-x-2">
+        <Skeleton className="h-6 w-16 inline-block" />
+        <Skeleton className="h-6 w-20 inline-block" />
+      </div>
+    </div>
   )
 }
