@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react'
 
-const roles = ['Full Stack Developer', 'AI Enthusiast', 'Creative Coder']
+const defaultRoles = ['Full Stack Developer', 'AI Enthusiast', 'Creative Coder']
 
-export default function TypingAnimation() {
+export default function TypingAnimation({ roles = defaultRoles }: { roles?: string[] }) {
   const [roleIndex, setRoleIndex] = useState(0)
   const [text, setText] = useState('')
   const [isDeleting, setIsDeleting] = useState(false)
@@ -30,7 +30,7 @@ export default function TypingAnimation() {
     const timer = setTimeout(handleTyping, typingSpeed)
 
     return () => clearTimeout(timer)
-  }, [text, isDeleting, roleIndex])
+  }, [text, isDeleting, roleIndex, roles])
 
   return (
     <span>

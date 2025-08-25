@@ -1,21 +1,71 @@
+'use client'
+
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import TypingAnimation from './TypingAnimation'
+import { db } from '@/lib/firebase'
+import { ref, onValue } from 'firebase/database'
+import type { HomeData } from '@/lib/data'
+import { Skeleton } from '../ui/skeleton'
 
 export default function HomeSection() {
+  const [homeData, setHomeData] = useState<HomeData | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const homeRef = ref(db, 'home')
+    const unsubscribe = onValue(homeRef, (snapshot) => {
+      const data = snapshot.val()
+      if (data) {
+        setHomeData(data)
+      }
+      setLoading(false)
+    });
+
+    return () => unsubscribe()
+  }, [])
+
+  if (loading) {
+    return (
+      <section id="home" className="bg-background">
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="grid items-center gap-8 md:grid-cols-2 lg:gap-12">
+            <div className="space-y-4">
+              <Skeleton className="h-12 w-3/4" />
+              <Skeleton className="h-8 w-1/2" />
+              <Skeleton className="h-20 w-full" />
+              <div className="flex flex-col gap-2 min-[400px]:flex-row">
+                <Skeleton className="h-12 w-32" />
+                <Skeleton className="h-12 w-32" />
+              </div>
+            </div>
+            <div className="flex justify-center">
+              <Skeleton className="h-[500px] w-[500px] rounded-full" />
+            </div>
+          </div>
+        </div>
+      </section>
+    )
+  }
+  
+  if (!homeData) {
+    return <section id="home" className="bg-background py-20 text-center">No content available.</section>
+  }
+
   return (
     <section id="home" className="bg-background">
       <div className="container mx-auto px-4 md:px-6">
         <div className="grid items-center gap-8 md:grid-cols-2 lg:gap-12">
           <div className="space-y-4">
             <h1 className="font-headline text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl">
-              Hi, I'm Hariharan
+              Hi, I'm {homeData.name}
             </h1>
             <div className="text-lg text-primary md:text-xl font-semibold h-8">
-              <TypingAnimation />
+              <TypingAnimation roles={homeData.roles} />
             </div>
             <p className="max-w-prose text-muted-foreground md:text-lg">
-              A passionate developer and AI enthusiast dedicated to building innovative solutions that push the boundaries of technology. Welcome to my digital space.
+              {homeData.description}
             </p>
             <div className="flex flex-col gap-2 min-[400px]:flex-row">
               <Button asChild size="lg">
@@ -28,8 +78,8 @@ export default function HomeSection() {
           </div>
           <div className="flex justify-center">
             <Image
-              src="https://placehold.co/500x500.png"
-              alt="Hariharan's Profile Picture"
+              src={homeData.profileImage || 'https://placehold.co/500x500.png'}
+              alt={`${homeData.name}'s Profile Picture`}
               width={500}
               height={500}
               className="rounded-full object-cover aspect-square shadow-lg border-4 border-card"

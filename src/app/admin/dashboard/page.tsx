@@ -7,12 +7,14 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
 import { logout } from '@/app/actions'
-import { Loader2, LogOut, Briefcase, GraduationCap, BookOpen } from 'lucide-react'
+import { Loader2, LogOut, Briefcase, GraduationCap, BookOpen, Home, User } from 'lucide-react'
 import { auth } from '@/lib/firebase'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { EducationManager } from '@/components/admin/EducationManager'
 import { ProjectsManager } from '@/components/admin/ProjectsManager'
 import { BlogManager } from '@/components/admin/BlogManager'
+import { HomeManager } from '@/components/admin/HomeManager'
+import { AboutManager } from '@/components/admin/AboutManager'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -47,8 +49,16 @@ export default function DashboardPage() {
         </div>
       </header>
       <main className="container mx-auto p-4 md:p-6">
-        <Tabs defaultValue="projects">
-          <TabsList className="grid w-full grid-cols-3 max-w-lg mx-auto">
+        <Tabs defaultValue="home">
+          <TabsList className="grid w-full grid-cols-5 max-w-2xl mx-auto">
+            <TabsTrigger value="home">
+              <Home className="mr-2 h-4 w-4" />
+              Home
+            </TabsTrigger>
+            <TabsTrigger value="about">
+              <User className="mr-2 h-4 w-4" />
+              About
+            </TabsTrigger>
             <TabsTrigger value="projects">
               <Briefcase className="mr-2 h-4 w-4" />
               Projects
@@ -62,6 +72,28 @@ export default function DashboardPage() {
               Blog
             </TabsTrigger>
           </TabsList>
+          <TabsContent value="home">
+            <Card>
+              <CardHeader>
+                <CardTitle>Manage Home Page</CardTitle>
+                <CardDescription>Edit the content of the home section.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <HomeManager />
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="about">
+            <Card>
+              <CardHeader>
+                <CardTitle>Manage About Page</CardTitle>
+                <CardDescription>Edit the content of the about section.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <AboutManager />
+              </CardContent>
+            </Card>
+          </TabsContent>
           <TabsContent value="projects">
             <Card>
               <CardHeader>
