@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
 import { logout } from '@/app/actions'
-import { Loader2, LogOut, Briefcase, GraduationCap, BookOpen, Home, User } from 'lucide-react'
+import { Loader2, LogOut, Briefcase, GraduationCap, BookOpen, Home, User, Feather } from 'lucide-react'
 import { auth } from '@/lib/firebase'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { EducationManager } from '@/components/admin/EducationManager'
@@ -15,6 +15,7 @@ import { ProjectsManager } from '@/components/admin/ProjectsManager'
 import { BlogManager } from '@/components/admin/BlogManager'
 import { HomeManager } from '@/components/admin/HomeManager'
 import { AboutManager } from '@/components/admin/AboutManager'
+import { PoemManager } from '@/components/admin/PoemManager'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -50,7 +51,7 @@ export default function DashboardPage() {
       </header>
       <main className="container mx-auto p-4 md:p-6">
         <Tabs defaultValue="home">
-          <TabsList className="grid w-full grid-cols-5 max-w-2xl mx-auto">
+          <TabsList className="grid w-full grid-cols-6 max-w-3xl mx-auto">
             <TabsTrigger value="home">
               <Home className="mr-2 h-4 w-4" />
               Home
@@ -70,6 +71,10 @@ export default function DashboardPage() {
             <TabsTrigger value="blog">
               <BookOpen className="mr-2 h-4 w-4" />
               Blog
+            </TabsTrigger>
+             <TabsTrigger value="poem">
+              <Feather className="mr-2 h-4 w-4" />
+              Poems
             </TabsTrigger>
           </TabsList>
           <TabsContent value="home">
@@ -124,6 +129,17 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <BlogManager />
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="poem">
+            <Card>
+              <CardHeader>
+                <CardTitle>Manage Poems</CardTitle>
+                <CardDescription>Edit, delete, or add new poems.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <PoemManager />
               </CardContent>
             </Card>
           </TabsContent>

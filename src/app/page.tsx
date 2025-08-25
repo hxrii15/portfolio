@@ -6,6 +6,7 @@ import EducationSection from '@/components/education/EducationSection';
 import ProjectsSection from '@/components/projects/ProjectsSection';
 import BlogSection from '@/components/blog/BlogSection';
 import Chatbot from '@/components/chatbot/Chatbot';
+import PoemSection from '@/components/poem/PoemSection';
 
 export default function Home() {
   return (
@@ -17,6 +18,7 @@ export default function Home() {
         <EducationSection />
         <ProjectsSection />
         <BlogSection />
+        <PoemSection />
       </main>
       <Footer />
       <Chatbot />

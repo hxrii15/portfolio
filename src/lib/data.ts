@@ -50,3 +50,11 @@ export type AboutData = {
   aboutImage: string;
   skills: Skill[];
 };
+
+export type Poem = {
+  id: string;
+  title: string;
+  author: string;
+  image: string;
+  poem: string;
+};

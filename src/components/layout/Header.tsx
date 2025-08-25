@@ -13,6 +13,7 @@ const navLinks = [
   { href: '#education', label: 'Education' },
   { href: '#projects', label: 'Projects' },
   { href: '#blog', label: 'Blog' },
+  { href: '#poem', label: 'Poems' },
 ]
 
 export default function Header() {
