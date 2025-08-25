@@ -29,31 +29,6 @@ function getAdminApp(): App {
   }
 }
 
-
-export async function createSession(idToken: string) {
-  try {
-    const adminApp = getAdminApp();
-    const decodedToken = await getAdminAuth(adminApp).verifyIdToken(idToken);
-    
-    if (decodedToken.email !== "hariharanmanii15@gmail.com") {
-      return { success: false, message: 'Access denied. You are not the authorized admin user.' };
-    }
-
-    cookies().set('auth-token', idToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      path: '/',
-      maxAge: 60 * 60 * 24, // 1 day
-    })
-    return { success: true }
-
-  } catch (error: any) {
-    console.error("Session creation failed:", error.message);
-    return { success: false, message: 'Failed to create a session. Please check server logs for details.' }
-  }
-}
-
-
 export async function logout() {
   cookies().delete('auth-token')
 }
@@ -77,22 +52,31 @@ export async function askAI(data: unknown) {
   }
 }
 
-export async function verifyAuth() {
-  const authToken = cookies().get('auth-token')?.value;
-
-  if (!authToken) {
+export async function verifyAuth(token: string | null): Promise<{ isAuthenticated: boolean; email?: string | null }> {
+  if (!token) {
     return { isAuthenticated: false };
   }
 
   try {
     const adminApp = getAdminApp();
-    const decodedToken = await getAdminAuth(adminApp).verifyIdToken(authToken);
+    const decodedToken = await getAdminAuth(adminApp).verifyIdToken(token);
+    
     if (decodedToken.email === 'hariharanmanii15@gmail.com') {
+      // Set a server-side cookie for subsequent server-side checks if needed
+      cookies().set('auth-token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        path: '/',
+        maxAge: 60 * 60 * 24, // 1 day
+      })
       return { isAuthenticated: true, email: decodedToken.email };
     }
+    
     return { isAuthenticated: false };
   } catch (error) {
     console.error('Auth token verification failed:', error);
+    // Clear the cookie if verification fails
+    cookies().delete('auth-token');
     return { isAuthenticated: false };
   }
 }

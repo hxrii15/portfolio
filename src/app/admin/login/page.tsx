@@ -1,21 +1,21 @@
 
 'use client'
 
-import { useTransition } from 'react'
+import { useEffect, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { signInWithEmailAndPassword } from 'firebase/auth'
+import { signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
-import { createSession } from '@/app/actions'
 import { Loader2 } from 'lucide-react'
 import { auth } from '@/lib/firebase'
+import { verifyAuth } from '@/app/actions'
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email.' }),
@@ -26,6 +26,20 @@ export default function AdminLoginPage() {
   const router = useRouter()
   const { toast } = useToast()
   const [isPending, startTransition] = useTransition()
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const token = await user.getIdToken();
+        const { isAuthenticated } = await verifyAuth(token);
+        if (isAuthenticated) {
+          router.replace('/admin/dashboard');
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, [router]);
+  
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -41,18 +55,17 @@ export default function AdminLoginPage() {
         const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password)
         const idToken = await userCredential.user.getIdToken()
         
-        const result = await createSession(idToken);
+        const result = await verifyAuth(idToken);
 
         if (result.success) {
           toast({ title: 'Login Successful', description: 'Redirecting to dashboard...' })
           router.push('/admin/dashboard')
-          router.refresh()
         } else {
           await auth.signOut();
           toast({
             variant: "destructive",
             title: 'Authentication Failed',
-            description: result.message,
+            description: "Access denied. You are not the authorized admin user.",
           })
         }
       } catch (error: any) {

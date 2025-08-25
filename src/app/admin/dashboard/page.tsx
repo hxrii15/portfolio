@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast'
 import { logout } from '@/app/actions'
 import { Loader2, LogOut } from 'lucide-react'
+import { auth } from '@/lib/firebase'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -16,10 +17,10 @@ export default function DashboardPage() {
 
   const handleLogout = () => {
     startTransition(async () => {
-      await logout()
+      await auth.signOut();
+      await logout(); // This clears the server-side cookie
       toast({ title: 'Logged Out', description: 'You have been successfully logged out.' })
-      router.push('/admin/login')
-      router.refresh()
+      router.replace('/admin/login')
     })
   }
 
