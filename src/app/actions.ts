@@ -8,14 +8,15 @@ import { credential } from 'firebase-admin'
 import { initializeApp, getApps, App } from 'firebase-admin/app'
 import { getAuth as getAdminAuth } from 'firebase-admin/auth'
 
-function getAdminApp(): App {
+function getAdminApp(): App | null {
   if (getApps().length > 0) {
     return getApps()[0];
   }
 
   const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
   if (!serviceAccountKey) {
-    throw new Error('FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set. Admin features will be disabled.');
+    console.warn('FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set. Admin features will be disabled.');
+    return null;
   }
 
   try {
@@ -25,7 +26,7 @@ function getAdminApp(): App {
     });
   } catch (error) {
     console.error("Failed to parse or use FIREBASE_SERVICE_ACCOUNT_KEY:", error);
-    throw new Error('Server configuration error. Could not initialize Firebase Admin SDK.');
+    return null;
   }
 }
 
@@ -57,12 +58,15 @@ export async function verifyAuth(token: string | null): Promise<{ isAuthenticate
     return { isAuthenticated: false };
   }
 
+  const adminApp = getAdminApp();
+  if (!adminApp) {
+    return { isAuthenticated: false };
+  }
+
   try {
-    const adminApp = getAdminApp();
     const decodedToken = await getAdminAuth(adminApp).verifyIdToken(token);
     
     if (decodedToken.email === 'hariharanmanii15@gmail.com') {
-      // Set a server-side cookie for subsequent server-side checks if needed
       cookies().set('auth-token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -75,7 +79,6 @@ export async function verifyAuth(token: string | null): Promise<{ isAuthenticate
     return { isAuthenticated: false };
   } catch (error) {
     console.error('Auth token verification failed:', error);
-    // Clear the cookie if verification fails
     cookies().delete('auth-token');
     return { isAuthenticated: false };
   }

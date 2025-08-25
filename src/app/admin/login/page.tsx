@@ -15,7 +15,6 @@ import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import { Loader2 } from 'lucide-react'
 import { auth } from '@/lib/firebase'
-import { verifyAuth } from '@/app/actions'
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email.' }),
@@ -27,14 +26,11 @@ export default function AdminLoginPage() {
   const { toast } = useToast()
   const [isPending, startTransition] = useTransition()
 
+  // Redirect if user is already logged in
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        const token = await user.getIdToken();
-        const { isAuthenticated } = await verifyAuth(token);
-        if (isAuthenticated) {
-          router.replace('/admin/dashboard');
-        }
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user && user.email === 'hariharanmanii15@gmail.com') {
+        router.replace('/admin/dashboard');
       }
     });
     return () => unsubscribe();
@@ -52,22 +48,20 @@ export default function AdminLoginPage() {
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     startTransition(async () => {
       try {
-        const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password)
-        const idToken = await userCredential.user.getIdToken()
-        
-        const result = await verifyAuth(idToken);
-
-        if (result.success) {
-          toast({ title: 'Login Successful', description: 'Redirecting to dashboard...' })
-          router.push('/admin/dashboard')
-        } else {
-          await auth.signOut();
+        if (values.email !== 'hariharanmanii15@gmail.com') {
           toast({
             variant: "destructive",
             title: 'Authentication Failed',
-            description: "Access denied. You are not the authorized admin user.",
+            description: "Access denied. This email is not authorized.",
           })
+          return;
         }
+
+        await signInWithEmailAndPassword(auth, values.email, values.password)
+        
+        toast({ title: 'Login Successful', description: 'Redirecting to dashboard...' })
+        router.push('/admin/dashboard')
+        
       } catch (error: any) {
         let message = 'An unknown authentication error occurred.';
         switch (error.code) {

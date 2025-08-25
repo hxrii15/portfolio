@@ -18,7 +18,7 @@ export default function DashboardPage() {
   const handleLogout = () => {
     startTransition(async () => {
       await auth.signOut();
-      await logout(); // This clears the server-side cookie
+      await logout(); // This is optional now but good for clearing any server cookies if they exist
       toast({ title: 'Logged Out', description: 'You have been successfully logged out.' })
       router.replace('/admin/login')
     })

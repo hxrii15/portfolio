@@ -5,35 +5,22 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { onAuthStateChanged } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
-import { verifyAuth } from '@/app/actions'
 import { Loader2 } from 'lucide-react'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        try {
-          const token = await user.getIdToken();
-          const { isAuthenticated } = await verifyAuth(token);
-          if (isAuthenticated) {
-            setLoading(false);
-          } else {
-            // Not the authorized admin
-            await auth.signOut();
-            router.replace('/admin/login');
-          }
-        } catch (error) {
-          // Token verification failed
-          await auth.signOut();
-          router.replace('/admin/login');
-        }
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user && user.email === 'hariharanmanii15@gmail.com') {
+        setIsAuthenticated(true);
       } else {
-        // Not logged in
+        setIsAuthenticated(false);
         router.replace('/admin/login');
       }
+      setLoading(false);
     });
 
     return () => unsubscribe();
@@ -45,6 +32,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
       </div>
     )
+  }
+
+  if (!isAuthenticated) {
+    // This part should theoretically not be reached due to the redirect in the effect,
+    // but it's good for robustness.
+    return null;
   }
 
   return <>{children}</>
