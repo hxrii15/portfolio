@@ -6,6 +6,13 @@ import { Toaster } from "@/components/ui/toaster"
 const portfolioTitle = 'Hariharan Portfolio';
 const portfolioDescription = 'A personal portfolio for Hariharan, showcasing projects, skills, and experience in web development and AI.';
 
+export const viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: 'white' },
+    { media: '(prefers-color-scheme: dark)', color: 'black' },
+  ],
+};
+
 export const metadata: Metadata = {
   metadataBase: new URL('https://hariharan-portfolio.com'), // Replace with your actual domain
   title: {
@@ -56,10 +63,6 @@ export const metadata: Metadata = {
     shortcut: '/favicon-16x16.png',
     apple: '/apple-touch-icon.png',
   },
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: 'white' },
-    { media: '(prefers-color-scheme: dark)', color: 'black' },
-  ],
   manifest: '/site.webmanifest', // Create a webmanifest file for PWA capabilities
 };
 

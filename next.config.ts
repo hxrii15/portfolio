@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  serverExternalPackages: ['genkit', '@genkit-ai/core', 'handlebars'],
   images: {
     remotePatterns: [
       {
