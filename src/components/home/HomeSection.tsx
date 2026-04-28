@@ -31,7 +31,7 @@ export default function HomeSection() {
     } catch (e) {
       console.error("Failed to read from localStorage", e);
     }
-    
+
     const homeRef = ref(db, 'home')
     const unsubscribe = onValue(homeRef, (snapshot) => {
       const data = snapshot.val()
@@ -40,7 +40,7 @@ export default function HomeSection() {
         try {
           const now = new Date().getTime();
           localStorage.setItem(cacheKey, JSON.stringify({ timestamp: now, data }));
-        } catch(e) {
+        } catch (e) {
           console.error("Failed to write to localStorage", e);
         }
       }
@@ -75,7 +75,7 @@ export default function HomeSection() {
       </section>
     )
   }
-  
+
   if (!homeData) {
     return <section id="home" className="bg-background py-20 text-center">No content available.</section>
   }

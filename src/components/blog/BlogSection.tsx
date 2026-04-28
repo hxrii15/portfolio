@@ -47,11 +47,11 @@ export default function BlogSection({ posts, limit, showViewAll = false }: BlogS
           <Input
             type="text"
             placeholder="Search articles..."
-            className="max-w-sm"
+            className="w-full md:max-w-sm"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-           <div className="flex items-center gap-2">
+           <div className="flex items-center gap-2 w-full md:w-auto">
             <Select onValueChange={setSelectedTag} defaultValue="all" value={selectedTag}>
               <SelectTrigger className="w-full md:w-[180px]">
                 <SelectValue placeholder="Filter by tag" />

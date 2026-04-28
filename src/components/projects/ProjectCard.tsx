@@ -39,7 +39,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
           </CardFooter>
         </Card>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[625px]">
+      <DialogContent className="w-[95vw] max-w-[625px] rounded-lg">
         <DialogHeader>
           <DialogTitle className="font-headline text-2xl">{project.title}</DialogTitle>
           <div className="flex flex-wrap gap-2 pt-2">
@@ -62,7 +62,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
             {project.details}
           </DialogDescription>
         </div>
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-3">
           <Button asChild>
             <a href={project.link} target="_blank" rel="noopener noreferrer">
               <Eye className="mr-2 h-4 w-4" />

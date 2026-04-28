@@ -45,10 +45,10 @@ export default function BlogCard({ post }: BlogCardProps) {
           </CardFooter>
         </Card>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[725px]">
+      <DialogContent className="w-[95vw] max-w-[725px] rounded-lg">
         <DialogHeader>
           <DialogTitle className="font-headline text-2xl">{post.title}</DialogTitle>
-           <div className="flex justify-between items-center text-sm text-muted-foreground pt-2">
+           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 text-sm text-muted-foreground pt-2">
               <div className="flex flex-wrap gap-2">
                 {post.tags.map(tag => (
                   <Badge key={tag} variant="secondary">{tag}</Badge>

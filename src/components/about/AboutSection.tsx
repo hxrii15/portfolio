@@ -108,18 +108,18 @@ export default function AboutSection() {
           </p>
         </div>
 
-        <div className="grid gap-12 lg:grid-cols-5">
-          <div className="lg:col-span-2 flex justify-center">
+        <div className="grid gap-8 md:gap-12 md:grid-cols-2 lg:grid-cols-5">
+          <div className="md:col-span-1 lg:col-span-2 flex justify-center">
             <Image
               src={aboutData.aboutImage || "https://placehold.co/600x800.png"}
               alt="About Me Image"
               width={600}
               height={800}
-              className="rounded-lg object-cover shadow-xl"
+              className="rounded-lg object-cover shadow-xl w-full max-w-[320px] sm:max-w-[400px] md:max-w-full"
               data-ai-hint="person coding"
             />
           </div>
-          <div className="lg:col-span-3 space-y-6">
+          <div className="md:col-span-1 lg:col-span-3 space-y-6">
             <h3 className="font-headline text-2xl font-bold">{aboutData.journeyTitle}</h3>
             <p className="text-muted-foreground">
               {aboutData.journeyDescription1}
@@ -128,7 +128,7 @@ export default function AboutSection() {
               {aboutData.journeyDescription2}
             </p>
             <h3 className="font-headline text-2xl font-bold pt-4">{aboutData.skillsetTitle}</h3>
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
               {aboutData.skills && Object.values(aboutData.skills).map((skill: Skill) => (
                 <Card key={skill.id} className="text-center hover:shadow-lg transition-shadow">
                   <CardHeader className="items-center">

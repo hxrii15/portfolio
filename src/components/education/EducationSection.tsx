@@ -68,11 +68,11 @@ export default function EducationSection() {
         <div className="relative">
            {loading ? (
              <div className="space-y-8 max-w-2xl mx-auto">
-               <div className="absolute left-1/2 top-0 h-full w-0.5 -translate-x-1/2 bg-border"></div>
+               <div className="hidden md:block absolute left-1/2 top-0 h-full w-0.5 -translate-x-1/2 bg-border"></div>
                {[...Array(2)].map((_, i) => (
-                  <div key={i} className={`relative flex w-full items-center justify-between ${i % 2 !== 0 ? 'md:flex-row-reverse' : ''}`}>
+                  <div key={i} className={`relative flex w-full items-center gap-4 md:justify-between ${i % 2 !== 0 ? 'md:flex-row-reverse' : ''}`}>
                     <div className="hidden md:block w-5/12"></div>
-                    <div className="z-10 flex h-10 w-10 items-center justify-center rounded-full bg-muted ring-8 ring-background">
+                    <div className="z-10 flex-shrink-0 flex h-10 w-10 items-center justify-center rounded-full bg-muted ring-4 md:ring-8 ring-background">
                         <Skeleton className="h-5 w-5" />
                     </div>
                     <div className="w-full md:w-5/12">
@@ -91,20 +91,20 @@ export default function EducationSection() {
              </div>
            ) : (
             <>
-              {educationData.length > 0 && <div className="absolute left-1/2 top-0 h-full w-0.5 -translate-x-1/2 bg-border"></div>}
-              <div className="max-w-2xl mx-auto">
+              {educationData.length > 0 && <div className="hidden md:block absolute left-1/2 top-0 h-full w-0.5 -translate-x-1/2 bg-border"></div>}
+              <div className="max-w-2xl mx-auto space-y-6 md:space-y-0">
                 {educationData.map((item, index) => (
-                  <div key={item.id} className={`relative mb-8 flex w-full items-center justify-between ${index % 2 !== 0 ? 'md:flex-row-reverse' : ''}`}>
+                  <div key={item.id} className={`relative mb-0 md:mb-8 flex w-full items-center gap-4 md:gap-0 md:justify-between ${index % 2 !== 0 ? 'md:flex-row-reverse' : ''}`}>
                     <div className="hidden md:block w-5/12"></div>
-                    <div className="z-10 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md ring-8 ring-background">
+                    <div className="z-10 flex-shrink-0 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md ring-4 md:ring-8 ring-background">
                       <GraduationCap className="h-5 w-5" />
                     </div>
                     <div className="w-full md:w-5/12">
                       <Card className="shadow-lg hover:shadow-xl transition-shadow">
                         <CardHeader>
-                          <div className="flex justify-between items-start">
-                            <CardTitle className="font-headline text-xl">{item.institution}</CardTitle>
-                            {item.current && <Badge>Current</Badge>}
+                          <div className="flex justify-between items-start gap-2">
+                            <CardTitle className="font-headline text-lg md:text-xl">{item.institution}</CardTitle>
+                            {item.current && <Badge className="shrink-0">Current</Badge>}
                           </div>
                           <p className="text-sm text-muted-foreground">{item.duration}</p>
                         </CardHeader>

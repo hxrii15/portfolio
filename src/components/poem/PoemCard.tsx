@@ -33,7 +33,7 @@ export default function PoemCard({ poem }: PoemCardProps) {
            </CardFooter>
         </Card>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[625px]">
+      <DialogContent className="w-[95vw] max-w-[625px] rounded-lg">
         <DialogHeader>
           <DialogTitle className="font-headline text-2xl">{poem.title}</DialogTitle>
           <CardDescription>by {poem.author}</CardDescription>
