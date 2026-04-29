@@ -34,6 +34,13 @@ const EducationForm = ({ onSave, initialData, onCancel }: {
   useEffect(() => {
     if (initialData) {
         reset(initialData)
+    } else {
+        reset({
+            institution: '',
+            degree: '',
+            duration: '',
+            current: false
+        })
     }
   }, [initialData, reset])
 
@@ -114,6 +121,14 @@ const CertificateForm = ({ onSave, initialData, onCancel }: {
   useEffect(() => {
     if (initialData) {
         reset(initialData)
+    } else {
+        reset({
+            name: '',
+            provider: '',
+            certificateId: '',
+            issueDate: '',
+            imageUrl: ''
+        })
     }
   }, [initialData, reset])
 
@@ -217,11 +232,12 @@ export function EducationManager() {
     const certificatesRef = ref(db, 'certificates');
 
     const getEndYear = (duration: string) => {
+        if (!duration) return 0;
         const parts = duration.split('-');
         const lastPart = parts[parts.length - 1].trim().toLowerCase();
         if (lastPart === 'present' || lastPart === 'current') return 9999;
-        const year = parseInt(lastPart.match(/\d{4}/)?.[0] || '0');
-        return year;
+        const match = lastPart.match(/\d{4}/);
+        return match ? parseInt(match[0]) : 0;
     };
 
     const unsubscribeEducation = onValue(educationRef, (snapshot) => {
@@ -245,13 +261,20 @@ export function EducationManager() {
             ...data[key]
           })).sort((a, b) => {
             // Sort by issueDate descending
-            const getYear = (date: string) => parseInt(date.match(/\d{4}/)?.[0] || '0');
+            const getYear = (date: string) => {
+                if (!date) return 0;
+                const match = date.match(/\d{4}/);
+                return match ? parseInt(match[0]) : 0;
+            };
             return getYear(b.issueDate) - getYear(a.issueDate);
           });
           setCertificatesData(certificatesList);
         } else {
           setCertificatesData([])
         }
+        setLoading(false);
+    }, (error) => {
+        console.error("Firebase certificates read failed:", error);
         setLoading(false);
     });
 
@@ -317,9 +340,11 @@ export function EducationManager() {
   const handleRemoveCertificate = async (id: string) => {
     if (confirm('Are you sure you want to delete this certificate?')) {
         try {
-          await remove(ref(db, `certificates/${id}`));
+          const certRef = ref(db, `certificates/${id}`);
+          await remove(certRef);
           toast({ title: 'Success', description: 'Certificate deleted.' });
         } catch (error) {
+          console.error("Delete failed:", error);
           toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete certificate.' });
         }
     }
