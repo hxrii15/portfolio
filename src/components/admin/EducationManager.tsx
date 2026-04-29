@@ -7,11 +7,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import { db, storage } from '@/lib/firebase'
+import { db } from '@/lib/firebase'
 import { ref, onValue, set, remove, push } from 'firebase/database'
-import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
 import type { Education, Certificate } from '@/lib/data'
-import { Loader2, Trash2, Edit2, X, Upload, Award } from 'lucide-react'
+import { Loader2, Trash2, Edit2, X, Link, Award } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card'
 import { Skeleton } from '../ui/skeleton'
@@ -100,7 +99,7 @@ const CertificateForm = ({ onSave, initialData, onCancel }: {
     initialData?: Certificate,
     onCancel?: () => void
 }) => {
-  const { register, handleSubmit, reset, formState: { isSubmitting } } = useForm<Omit<Certificate, 'id'>>({
+  const { register, handleSubmit, reset, watch, formState: { isSubmitting } } = useForm<Omit<Certificate, 'id'>>({
       defaultValues: initialData || {
           name: '',
           provider: '',
@@ -110,38 +109,18 @@ const CertificateForm = ({ onSave, initialData, onCancel }: {
       }
   })
 
-  const [uploading, setUploading] = useState(false)
-  const [previewUrl, setPreviewUrl] = useState<string>(initialData?.imageUrl || '')
+  const previewUrl = watch('imageUrl')
 
   useEffect(() => {
     if (initialData) {
         reset(initialData)
-        setPreviewUrl(initialData.imageUrl || '')
     }
   }, [initialData, reset])
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    setUploading(true)
-    try {
-        const fileRef = storageRef(storage, `certificates/${Date.now()}_${file.name}`)
-        await uploadBytes(fileRef, file)
-        const url = await getDownloadURL(fileRef)
-        setPreviewUrl(url)
-    } catch (error) {
-        console.error("Upload failed", error)
-    } finally {
-        setUploading(false)
-    }
-  }
-
   const handleSave = async (data: Omit<Certificate, 'id'>) => {
-    await onSave({ ...data, imageUrl: previewUrl })
+    await onSave(data)
     if (!initialData) {
         reset()
-        setPreviewUrl('')
     }
   }
 
@@ -176,8 +155,8 @@ const CertificateForm = ({ onSave, initialData, onCancel }: {
                     </div>
                 </div>
                 <div className="space-y-2">
-                    <Label>Certificate Image</Label>
-                    <div className="flex items-center gap-4">
+                    <Label>Certificate Image URL</Label>
+                    <div className="flex items-start gap-4">
                         <div className="relative group flex-shrink-0">
                             {previewUrl ? (
                                 <img src={previewUrl} alt="Preview" className="h-20 w-20 object-cover rounded-md border" />
@@ -187,9 +166,24 @@ const CertificateForm = ({ onSave, initialData, onCancel }: {
                                 </div>
                             )}
                         </div>
-                        <div className="flex-1">
-                            <Input type="file" accept="image/*" onChange={handleImageUpload} disabled={uploading} />
-                            {uploading && <p className="text-xs text-muted-foreground mt-1 flex items-center"><Loader2 className="h-3 w-3 animate-spin mr-1" /> Uploading...</p>}
+                        <div className="flex-1 space-y-1">
+                            <div className="relative">
+                                <Link className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                <Input 
+                                    className="pl-9"
+                                    placeholder="https://cloudinary.com/..." 
+                                    {...register('imageUrl', { 
+                                        required: "Image URL is required",
+                                        pattern: {
+                                            value: /^(https?:\/\/.*\.(?:png|jpg|jpeg|gif|webp|svg))$/i,
+                                            message: "Please enter a valid image URL"
+                                        }
+                                    })} 
+                                />
+                            </div>
+                            <p className="text-[10px] text-muted-foreground">
+                                Paste a URL from Cloudinary, Imgur, or any hosting service.
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -199,8 +193,8 @@ const CertificateForm = ({ onSave, initialData, onCancel }: {
                              Cancel
                          </Button>
                      )}
-                     <Button type="submit" disabled={isSubmitting || uploading}>
-                        {(isSubmitting || uploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                     <Button type="submit" disabled={isSubmitting}>
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         {initialData ? 'Update Certificate' : 'Add Certificate'}
                     </Button>
                 </div>
