@@ -103,10 +103,18 @@ export function EducationManager() {
     const unsubscribe = onValue(educationRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
+        const getEndYear = (duration: string) => {
+          const parts = duration.split('-');
+          const lastPart = parts[parts.length - 1].trim().toLowerCase();
+          if (lastPart === 'present' || lastPart === 'current') return 9999;
+          const year = parseInt(lastPart.match(/\d{4}/)?.[0] || '0');
+          return year;
+        };
+
         const educationList = Object.keys(data).map(key => ({
           id: key,
           ...data[key]
-        })).sort((a, b) => a.duration.localeCompare(b.duration));
+        })).sort((a, b) => getEndYear(b.duration) - getEndYear(a.duration));
         setEducationData(educationList);
       } else {
         setEducationData([])
@@ -174,7 +182,8 @@ export function EducationManager() {
                         {educationData.map((item) => (
                              <div key={item.id} className="flex items-center justify-between p-3 border-b last:border-b-0">
                                 <div>
-                                    <p className="font-bold">{item.institution} - {item.degree}</p>
+                                    <p className="font-bold">{item.degree}</p>
+                                    <p className="text-sm font-normal text-foreground/80">{item.institution}</p>
                                     <p className="text-sm text-muted-foreground">{item.duration} {item.current && <span className="text-primary font-semibold">(Current)</span>}</p>
                                 </div>
                                 <div className="flex gap-1">

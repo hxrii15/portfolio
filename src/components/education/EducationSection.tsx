@@ -35,10 +35,18 @@ export default function EducationSection() {
     const unsubscribe = onValue(educationRef, (snapshot) => {
       const data = snapshot.val()
       if (data) {
+        const getEndYear = (duration: string) => {
+          const parts = duration.split('-');
+          const lastPart = parts[parts.length - 1].trim().toLowerCase();
+          if (lastPart === 'present' || lastPart === 'current') return 9999;
+          const year = parseInt(lastPart.match(/\d{4}/)?.[0] || '0');
+          return year;
+        };
+
         const educationList = Object.keys(data).map(key => ({
           id: key,
           ...data[key]
-        })).sort((a, b) => a.duration.localeCompare(b.duration));
+        })).sort((a, b) => getEndYear(b.duration) - getEndYear(a.duration));
         setEducationData(educationList)
         try {
             const now = new Date().getTime();
@@ -103,9 +111,10 @@ export default function EducationSection() {
                       <Card className="shadow-lg hover:shadow-xl transition-shadow">
                         <CardHeader>
                           <div className="flex justify-between items-start gap-2">
-                            <CardTitle className="font-headline text-lg md:text-xl">{item.institution} - {item.degree}</CardTitle>
+                            <CardTitle className="font-headline text-lg md:text-xl font-bold">{item.degree}</CardTitle>
                             {item.current && <Badge className="shrink-0">Current</Badge>}
                           </div>
+                          <p className="text-sm font-normal text-foreground/80">{item.institution}</p>
                           <p className="text-sm text-muted-foreground">{item.duration}</p>
                         </CardHeader>
                       </Card>
