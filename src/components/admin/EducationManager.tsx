@@ -244,21 +244,22 @@ export function EducationManager() {
       const data = snapshot.val();
       if (data) {
         const educationList = Object.keys(data).map(key => ({
-          id: key,
-          ...data[key]
+          ...data[key],
+          id: key
         })).sort((a, b) => getEndYear(b.duration) - getEndYear(a.duration));
         setEducationData(educationList);
       } else {
         setEducationData([])
       }
+      setLoading(false);
     });
 
     const unsubscribeCertificates = onValue(certificatesRef, (snapshot) => {
         const data = snapshot.val();
         if (data) {
           const certificatesList = Object.keys(data).map(key => ({
-            id: key,
-            ...data[key]
+            ...data[key],
+            id: key
           })).sort((a, b) => {
             // Sort by issueDate descending
             const getYear = (date: string) => {
@@ -297,7 +298,9 @@ export function EducationManager() {
   const handleUpdateEducation = async (updatedEntry: Omit<Education, 'id'>) => {
       if (!editingEducation) return;
       try {
-          await set(ref(db, `education/${editingEducation.id}`), updatedEntry);
+          // Ensure we don't save the id field inside the data node
+          const { id, ...dataToSave } = updatedEntry as any;
+          await set(ref(db, `education/${editingEducation.id}`), dataToSave);
           toast({ title: 'Success', description: 'Education entry updated.' });
           setEditingEducation(null);
       } catch (error) {
@@ -306,11 +309,19 @@ export function EducationManager() {
   }
   
   const handleRemoveEducation = async (id: string) => {
+      if (!id) return;
+
       if (confirm('Are you sure you want to delete this entry?')) {
           try {
-            await remove(ref(db, `education/${id}`));
+            const entryRef = ref(db, `education/${id}`);
+            await remove(entryRef);
+
+            // Update local state immediately for better UX
+            setEducationData(prev => prev.filter(item => item.id !== id));
+
             toast({ title: 'Success', description: 'Education entry deleted.' });
           } catch (error) {
+            console.error("Delete failed:", error);
             toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete entry.' });
           }
       }
@@ -329,7 +340,9 @@ export function EducationManager() {
   const handleUpdateCertificate = async (updatedEntry: Omit<Certificate, 'id'>) => {
     if (!editingCertificate) return;
     try {
-        await set(ref(db, `certificates/${editingCertificate.id}`), updatedEntry);
+        // Ensure we don't save the id field inside the data node
+        const { id, ...dataToSave } = updatedEntry as any;
+        await set(ref(db, `certificates/${editingCertificate.id}`), dataToSave);
         toast({ title: 'Success', description: 'Certificate updated.' });
         setEditingCertificate(null);
     } catch (error) {
@@ -338,10 +351,17 @@ export function EducationManager() {
   }
 
   const handleRemoveCertificate = async (id: string) => {
+    if (!id) return;
+    
     if (confirm('Are you sure you want to delete this certificate?')) {
         try {
+          // Perform the deletion
           const certRef = ref(db, `certificates/${id}`);
           await remove(certRef);
+          
+          // Update local state immediately for better UX
+          setCertificatesData(prev => prev.filter(item => item.id !== id));
+          
           toast({ title: 'Success', description: 'Certificate deleted.' });
         } catch (error) {
           console.error("Delete failed:", error);
