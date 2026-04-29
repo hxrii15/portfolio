@@ -58,3 +58,12 @@ export type Poem = {
   image: string;
   poem: string;
 };
+
+export type Certificate = {
+  id: string;
+  name: string;
+  provider: string;
+  certificateId: string;
+  issueDate: string;
+  imageUrl?: string;
+};

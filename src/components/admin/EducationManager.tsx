@@ -7,13 +7,15 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import { db } from '@/lib/firebase'
+import { db, storage } from '@/lib/firebase'
 import { ref, onValue, set, remove, push } from 'firebase/database'
-import type { Education } from '@/lib/data'
-import { Loader2, Trash2, Edit2, X } from 'lucide-react'
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
+import type { Education, Certificate } from '@/lib/data'
+import { Loader2, Trash2, Edit2, X, Upload, Award } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card'
 import { Skeleton } from '../ui/skeleton'
+
 
 // Form for adding/editing an education entry
 const EducationForm = ({ onSave, initialData, onCancel }: { 
@@ -57,7 +59,7 @@ const EducationForm = ({ onSave, initialData, onCancel }: {
                         <Input {...register('institution', { required: true })} />
                     </div>
                     <div className="space-y-2">
-                        <Label>Degree/Certificate</Label>
+                        <Label>Degree</Label>
                         <Input {...register('degree', { required: true })} />
                     </div>
                 </div>
@@ -92,25 +94,145 @@ const EducationForm = ({ onSave, initialData, onCancel }: {
   )
 }
 
+// Form for adding/editing a certificate entry
+const CertificateForm = ({ onSave, initialData, onCancel }: { 
+    onSave: (entry: Omit<Certificate, 'id'>) => Promise<void>, 
+    initialData?: Certificate,
+    onCancel?: () => void
+}) => {
+  const { register, handleSubmit, reset, formState: { isSubmitting } } = useForm<Omit<Certificate, 'id'>>({
+      defaultValues: initialData || {
+          name: '',
+          provider: '',
+          certificateId: '',
+          issueDate: '',
+          imageUrl: ''
+      }
+  })
+
+  const [uploading, setUploading] = useState(false)
+  const [previewUrl, setPreviewUrl] = useState<string>(initialData?.imageUrl || '')
+
+  useEffect(() => {
+    if (initialData) {
+        reset(initialData)
+        setPreviewUrl(initialData.imageUrl || '')
+    }
+  }, [initialData, reset])
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setUploading(true)
+    try {
+        const fileRef = storageRef(storage, `certificates/${Date.now()}_${file.name}`)
+        await uploadBytes(fileRef, file)
+        const url = await getDownloadURL(fileRef)
+        setPreviewUrl(url)
+    } catch (error) {
+        console.error("Upload failed", error)
+    } finally {
+        setUploading(false)
+    }
+  }
+
+  const handleSave = async (data: Omit<Certificate, 'id'>) => {
+    await onSave({ ...data, imageUrl: previewUrl })
+    if (!initialData) {
+        reset()
+        setPreviewUrl('')
+    }
+  }
+
+  return (
+    <Card className={initialData ? "border-primary/50" : "bg-muted/50"}>
+        <CardHeader>
+            <CardTitle>{initialData ? 'Edit Certificate' : 'Add New Certificate'}</CardTitle>
+            <CardDescription>
+                {initialData ? 'Update your certificate details.' : 'Fill out the form to add a new professional certificate.'}
+            </CardDescription>
+        </CardHeader>
+        <CardContent>
+             <form onSubmit={handleSubmit(handleSave)} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label>Certificate Name</Label>
+                        <Input {...register('name', { required: true })} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Provider (e.g. Coursera, Udemy)</Label>
+                        <Input {...register('provider', { required: true })} />
+                    </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label>Certificate ID / Number</Label>
+                        <Input {...register('certificateId')} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Issue Date / Duration</Label>
+                        <Input placeholder="e.g., Oct 2023" {...register('issueDate', { required: true })} />
+                    </div>
+                </div>
+                <div className="space-y-2">
+                    <Label>Certificate Image</Label>
+                    <div className="flex items-center gap-4">
+                        <div className="relative group flex-shrink-0">
+                            {previewUrl ? (
+                                <img src={previewUrl} alt="Preview" className="h-20 w-20 object-cover rounded-md border" />
+                            ) : (
+                                <div className="h-20 w-20 bg-muted flex items-center justify-center rounded-md border border-dashed">
+                                    <Award className="h-8 w-8 text-muted-foreground" />
+                                </div>
+                            )}
+                        </div>
+                        <div className="flex-1">
+                            <Input type="file" accept="image/*" onChange={handleImageUpload} disabled={uploading} />
+                            {uploading && <p className="text-xs text-muted-foreground mt-1 flex items-center"><Loader2 className="h-3 w-3 animate-spin mr-1" /> Uploading...</p>}
+                        </div>
+                    </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                     {onCancel && (
+                         <Button type="button" variant="outline" onClick={onCancel}>
+                             Cancel
+                         </Button>
+                     )}
+                     <Button type="submit" disabled={isSubmitting || uploading}>
+                        {(isSubmitting || uploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {initialData ? 'Update Certificate' : 'Add Certificate'}
+                    </Button>
+                </div>
+             </form>
+        </CardContent>
+    </Card>
+  )
+}
+
 export function EducationManager() {
   const [educationData, setEducationData] = useState<Education[]>([])
+  const [certificatesData, setCertificatesData] = useState<Certificate[]>([])
   const [loading, setLoading] = useState(true)
-  const [editingItem, setEditingItem] = useState<Education | null>(null)
+  const [editingEducation, setEditingEducation] = useState<Education | null>(null)
+  const [editingCertificate, setEditingCertificate] = useState<Certificate | null>(null)
   const { toast } = useToast()
   
   useEffect(() => {
     const educationRef = ref(db, 'education');
-    const unsubscribe = onValue(educationRef, (snapshot) => {
+    const certificatesRef = ref(db, 'certificates');
+
+    const getEndYear = (duration: string) => {
+        const parts = duration.split('-');
+        const lastPart = parts[parts.length - 1].trim().toLowerCase();
+        if (lastPart === 'present' || lastPart === 'current') return 9999;
+        const year = parseInt(lastPart.match(/\d{4}/)?.[0] || '0');
+        return year;
+    };
+
+    const unsubscribeEducation = onValue(educationRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        const getEndYear = (duration: string) => {
-          const parts = duration.split('-');
-          const lastPart = parts[parts.length - 1].trim().toLowerCase();
-          if (lastPart === 'present' || lastPart === 'current') return 9999;
-          const year = parseInt(lastPart.match(/\d{4}/)?.[0] || '0');
-          return year;
-        };
-
         const educationList = Object.keys(data).map(key => ({
           id: key,
           ...data[key]
@@ -119,10 +241,30 @@ export function EducationManager() {
       } else {
         setEducationData([])
       }
-      setLoading(false);
     });
 
-    return () => unsubscribe();
+    const unsubscribeCertificates = onValue(certificatesRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          const certificatesList = Object.keys(data).map(key => ({
+            id: key,
+            ...data[key]
+          })).sort((a, b) => {
+            // Sort by issueDate descending
+            const getYear = (date: string) => parseInt(date.match(/\d{4}/)?.[0] || '0');
+            return getYear(b.issueDate) - getYear(a.issueDate);
+          });
+          setCertificatesData(certificatesList);
+        } else {
+          setCertificatesData([])
+        }
+        setLoading(false);
+    });
+
+    return () => {
+        unsubscribeEducation();
+        unsubscribeCertificates();
+    };
   }, []);
 
   const handleAddEducation = async (newEntry: Omit<Education, 'id'>) => {
@@ -136,11 +278,11 @@ export function EducationManager() {
   }
   
   const handleUpdateEducation = async (updatedEntry: Omit<Education, 'id'>) => {
-      if (!editingItem) return;
+      if (!editingEducation) return;
       try {
-          await set(ref(db, `education/${editingItem.id}`), updatedEntry);
+          await set(ref(db, `education/${editingEducation.id}`), updatedEntry);
           toast({ title: 'Success', description: 'Education entry updated.' });
-          setEditingItem(null);
+          setEditingEducation(null);
       } catch (error) {
           toast({ variant: 'destructive', title: 'Error', description: 'Failed to update entry.' });
       }
@@ -157,51 +299,144 @@ export function EducationManager() {
       }
   }
 
-  return (
-    <div className="space-y-6">
-        {editingItem ? (
-            <EducationForm 
-                onSave={handleUpdateEducation} 
-                initialData={editingItem} 
-                onCancel={() => setEditingItem(null)} 
-            />
-        ) : (
-            <EducationForm onSave={handleAddEducation} />
-        )}
+  const handleAddCertificate = async (newEntry: Omit<Certificate, 'id'>) => {
+    try {
+        const newEntryRef = push(ref(db, 'certificates'));
+        await set(newEntryRef, newEntry);
+        toast({ title: 'Success', description: 'New certificate added.' });
+    } catch (error) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to add certificate.' });
+    }
+  }
 
-        <Card>
-            <CardHeader>
-                <CardTitle>Existing Entries</CardTitle>
-                <CardDescription>Manage your current education entries.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                 {loading ? (
-                    <Skeleton className="h-48 w-full" />
-                ) : educationData.length > 0 ? (
-                    <div className="border rounded-md">
-                        {educationData.map((item) => (
-                             <div key={item.id} className="flex items-center justify-between p-3 border-b last:border-b-0">
-                                <div>
-                                    <p className="font-bold">{item.degree}</p>
-                                    <p className="text-sm font-normal text-foreground/80">{item.institution}</p>
-                                    <p className="text-sm text-muted-foreground">{item.duration} {item.current && <span className="text-primary font-semibold">(Current)</span>}</p>
+  const handleUpdateCertificate = async (updatedEntry: Omit<Certificate, 'id'>) => {
+    if (!editingCertificate) return;
+    try {
+        await set(ref(db, `certificates/${editingCertificate.id}`), updatedEntry);
+        toast({ title: 'Success', description: 'Certificate updated.' });
+        setEditingCertificate(null);
+    } catch (error) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to update certificate.' });
+    }
+  }
+
+  const handleRemoveCertificate = async (id: string) => {
+    if (confirm('Are you sure you want to delete this certificate?')) {
+        try {
+          await remove(ref(db, `certificates/${id}`));
+          toast({ title: 'Success', description: 'Certificate deleted.' });
+        } catch (error) {
+          toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete certificate.' });
+        }
+    }
+  }
+
+  return (
+    <div className="space-y-12">
+        {/* Education Section */}
+        <div className="space-y-6">
+            <h2 className="text-2xl font-bold border-b pb-2">Academic Degrees</h2>
+            {editingEducation ? (
+                <EducationForm 
+                    onSave={handleUpdateEducation} 
+                    initialData={editingEducation} 
+                    onCancel={() => setEditingEducation(null)} 
+                />
+            ) : (
+                <EducationForm onSave={handleAddEducation} />
+            )}
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Existing Degrees</CardTitle>
+                    <CardDescription>Manage your academic qualifications.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {loading ? (
+                        <Skeleton className="h-48 w-full" />
+                    ) : educationData.length > 0 ? (
+                        <div className="border rounded-md">
+                            {educationData.map((item) => (
+                                <div key={item.id} className="flex items-center justify-between p-3 border-b last:border-b-0">
+                                    <div>
+                                        <p className="font-bold">{item.degree}</p>
+                                        <p className="text-sm font-normal text-foreground/80">{item.institution}</p>
+                                        <p className="text-sm text-muted-foreground">{item.duration} {item.current && <span className="text-primary font-semibold">(Current)</span>}</p>
+                                    </div>
+                                    <div className="flex gap-1">
+                                        <Button variant="ghost" size="icon" onClick={() => setEditingEducation(item)}>
+                                            <Edit2 className="h-4 w-4" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" onClick={() => handleRemoveEducation(item.id)}>
+                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                    </div>
                                 </div>
-                                <div className="flex gap-1">
-                                    <Button variant="ghost" size="icon" onClick={() => setEditingItem(item)}>
-                                        <Edit2 className="h-4 w-4" />
-                                    </Button>
-                                    <Button variant="ghost" size="icon" onClick={() => handleRemoveEducation(item.id)}>
-                                        <Trash2 className="h-4 w-4 text-destructive" />
-                                    </Button>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-center text-muted-foreground py-8">No education entries found.</p>
+                    )}
+                </CardContent>
+            </Card>
+        </div>
+
+        {/* Certificates Section */}
+        <div className="space-y-6">
+            <h2 className="text-2xl font-bold border-b pb-2">Certificates</h2>
+            {editingCertificate ? (
+                <CertificateForm 
+                    onSave={handleUpdateCertificate} 
+                    initialData={editingCertificate} 
+                    onCancel={() => setEditingCertificate(null)} 
+                />
+            ) : (
+                <CertificateForm onSave={handleAddCertificate} />
+            )}
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Existing Certificates</CardTitle>
+                    <CardDescription>Manage your professional certifications.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {loading ? (
+                        <Skeleton className="h-48 w-full" />
+                    ) : certificatesData.length > 0 ? (
+                        <div className="border rounded-md">
+                            {certificatesData.map((item) => (
+                                <div key={item.id} className="flex items-center justify-between p-3 border-b last:border-b-0">
+                                    <div className="flex items-center gap-3">
+                                        {item.imageUrl ? (
+                                            <img src={item.imageUrl} alt={item.name} className="h-10 w-10 object-cover rounded border" />
+                                        ) : (
+                                            <div className="h-10 w-10 bg-muted flex items-center justify-center rounded border">
+                                                <Award className="h-5 w-5 text-muted-foreground" />
+                                            </div>
+                                        )}
+                                        <div>
+                                            <p className="font-bold">{item.name}</p>
+                                            <p className="text-sm font-normal text-foreground/80">{item.provider}</p>
+                                            <p className="text-xs text-muted-foreground">{item.issueDate} {item.certificateId && `• ID: ${item.certificateId}`}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-1">
+                                        <Button variant="ghost" size="icon" onClick={() => setEditingCertificate(item)}>
+                                            <Edit2 className="h-4 w-4" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" onClick={() => handleRemoveCertificate(item.id)}>
+                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                    </div>
                                 </div>
-                             </div>
-                        ))}
-                    </div>
-                ) : (
-                    <p className="text-center text-muted-foreground py-8">No education entries found.</p>
-                )}
-            </CardContent>
-        </Card>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-center text-muted-foreground py-8">No certificates found.</p>
+                    )}
+                </CardContent>
+            </Card>
+        </div>
     </div>
   )
 }
