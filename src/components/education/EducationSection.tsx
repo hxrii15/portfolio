@@ -38,7 +38,7 @@ export default function EducationSection() {
         const educationList = Object.keys(data).map(key => ({
           id: key,
           ...data[key]
-        })).sort((a, b) => (b.current ? 1 : -1)); // Keep current education on top
+        })).sort((a, b) => a.duration.localeCompare(b.duration));
         setEducationData(educationList)
         try {
             const now = new Date().getTime();
@@ -103,14 +103,11 @@ export default function EducationSection() {
                       <Card className="shadow-lg hover:shadow-xl transition-shadow">
                         <CardHeader>
                           <div className="flex justify-between items-start gap-2">
-                            <CardTitle className="font-headline text-lg md:text-xl">{item.institution}</CardTitle>
+                            <CardTitle className="font-headline text-lg md:text-xl">{item.institution} - {item.degree}</CardTitle>
                             {item.current && <Badge className="shrink-0">Current</Badge>}
                           </div>
                           <p className="text-sm text-muted-foreground">{item.duration}</p>
                         </CardHeader>
-                        <CardContent>
-                          <p>{item.degree}</p>
-                        </CardContent>
                       </Card>
                     </div>
                   </div>
