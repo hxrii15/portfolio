@@ -52,7 +52,7 @@ export function ContactModal() {
           Accept: "application/json",
         },
         body: JSON.stringify({
-          access_key: "YOUR_ACCESS_KEY_HERE", // Replace with your actual key
+          access_key: "9f31b564-6386-49cd-86b0-c6eb876137b4", // Replace with your actual key
           name: data.name,
           email: data.email,
           message: data.message,
