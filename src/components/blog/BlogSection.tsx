@@ -1,7 +1,6 @@
-
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { BlogPost } from '@/lib/data'
@@ -9,24 +8,53 @@ import BlogCard from './BlogCard'
 import { Button } from '../ui/button'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
+import { db } from '@/lib/firebase'
+import { ref, onValue } from 'firebase/database'
+import { Skeleton } from '../ui/skeleton'
 
 type BlogSectionProps = {
-  posts: BlogPost[];
   limit?: number;
   showViewAll?: boolean;
 }
 
-export default function BlogSection({ posts, limit, showViewAll = false }: BlogSectionProps) {
+export default function BlogSection({ limit, showViewAll = false }: BlogSectionProps) {
+  const [posts, setPosts] = useState<BlogPost[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedTag, setSelectedTag] = useState('all')
 
-  const allTags = useMemo(() => Array.from(new Set(posts.flatMap(p => p.tags))), [posts]);
+  useEffect(() => {
+    const blogRef = ref(db, 'blogs')
+    const unsubscribe = onValue(blogRef, (snapshot) => {
+      const data = snapshot.val()
+      if (data) {
+        const blogList = Object.keys(data).map(key => ({
+          id: key,
+          ...data[key],
+          tags: data[key].tags || []
+        }))
+        // Sort by date (assuming YYYY or similar format, otherwise fallback)
+        blogList.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        setPosts(blogList)
+      } else {
+        setPosts([])
+      }
+      setLoading(false)
+    }, (error) => {
+      console.error("Firebase blog fetch failed:", error)
+      setLoading(false)
+    })
+
+    return () => unsubscribe()
+  }, [])
+
+  const allTags = useMemo(() => Array.from(new Set(posts.flatMap(p => p.tags || []))), [posts]);
 
   const filteredBlogs = useMemo(() => {
     const allFiltered = posts.filter(blog => {
-      const searchMatch = blog.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          blog.description.toLowerCase().includes(searchQuery.toLowerCase())
-      const tagMatch = selectedTag === 'all' || blog.tags.includes(selectedTag)
+      const searchMatch = (blog.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          (blog.description || blog.content || '').toLowerCase().includes(searchQuery.toLowerCase())
+      const tagMatch = selectedTag === 'all' || (blog.tags || []).includes(selectedTag)
       return searchMatch && tagMatch
     })
     if (limit) {
@@ -69,7 +97,13 @@ export default function BlogSection({ posts, limit, showViewAll = false }: BlogS
           </div>
         </div>
         
-        {filteredBlogs.length > 0 ? (
+        {loading ? (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {[...Array(3)].map((_, i) => (
+              <Skeleton key={i} className="h-[400px] w-full rounded-xl" />
+            ))}
+          </div>
+        ) : filteredBlogs.length > 0 ? (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {filteredBlogs.map((post) => (
               <BlogCard key={post.id} post={post} />
@@ -77,11 +111,11 @@ export default function BlogSection({ posts, limit, showViewAll = false }: BlogS
           </div>
         ) : (
           <div className="text-center py-16 text-muted-foreground">
-            <p>No articles found. Please check back later.</p>
-            <p className="text-sm mt-2">To add a blog post, create a new `.md` file in the `src/blog` directory.</p>
+            <p className="text-lg font-medium">No posts yet.</p>
+            <p className="text-sm mt-2">Check back soon for new articles!</p>
           </div>
         )}
-        {showViewAll && (
+        {showViewAll && !loading && posts.length > 3 && (
           <div className="mt-12 text-center">
             <Button asChild variant="outline">
               <Link href="/blog">

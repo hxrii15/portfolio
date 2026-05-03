@@ -25,6 +25,7 @@ export type BlogPost = {
   tags: string[];
   readTime: string;
   content: string;
+  date: string;
 };
 
 export type HomeData = {

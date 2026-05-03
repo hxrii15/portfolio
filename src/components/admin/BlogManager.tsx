@@ -2,243 +2,266 @@
 
 import { useState, useEffect, useTransition } from 'react'
 import { useForm } from 'react-hook-form'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
+import { Input } from '@/components/ui/input'
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { db } from '@/lib/firebase'
 import { ref, onValue, set, remove, push } from 'firebase/database'
 import type { BlogPost } from '@/lib/data'
-import { Edit, Trash2, PlusCircle, Loader2, Link as LinkIcon, Image as ImageIcon } from 'lucide-react'
+import { Loader2, Trash2, Edit2, Link as LinkIcon, Image as ImageIcon, Calendar } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card'
+import { Skeleton } from '../ui/skeleton'
+
+// Blog Form Component
+const BlogForm = ({ onSave, initialData, onCancel }: { 
+    onSave: (entry: Omit<BlogPost, 'id'>) => Promise<void>, 
+    initialData?: BlogPost | null,
+    onCancel?: () => void
+}) => {
+  const { register, handleSubmit, reset, watch, formState: { isSubmitting } } = useForm<Omit<BlogPost, 'id'>>({
+      defaultValues: initialData || {
+          title: '',
+          content: '',
+          image: '',
+          date: '',
+          description: '', // We'll use content for description too or keep it simple
+          tags: [],
+          readTime: ''
+      }
+  })
+
+  const previewUrl = watch('image')
+
+  useEffect(() => {
+    if (initialData) {
+        reset(initialData)
+    } else {
+        reset({
+            title: '',
+            content: '',
+            image: '',
+            date: '',
+            description: '',
+            tags: [],
+            readTime: ''
+        })
+    }
+  }, [initialData, reset])
+
+  const handleSave = async (data: Omit<BlogPost, 'id'>) => {
+    // If description is empty, use a snippet of content
+    if (!data.description) {
+        data.description = data.content.substring(0, 150) + '...';
+    }
+    // Ensure tags is an array
+    if (typeof data.tags === 'string') {
+        data.tags = (data.tags as string).split(',').map(t => t.trim()).filter(Boolean);
+    }
+    
+    await onSave(data)
+    if (!initialData) reset()
+  }
+
+  return (
+    <Card className={initialData ? "border-primary/50" : "bg-muted/50"}>
+        <CardHeader>
+            <CardTitle>{initialData ? 'Edit Blog Post' : 'Add New Blog Post'}</CardTitle>
+            <CardDescription>
+                {initialData ? 'Update your blog post details.' : 'Fill out the form to add a new blog post.'}
+            </CardDescription>
+        </CardHeader>
+        <CardContent>
+             <form onSubmit={handleSubmit(handleSave)} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label>Title</Label>
+                        <Input {...register('title', { required: true })} placeholder="Post Title" />
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Date</Label>
+                        <div className="relative">
+                            <Calendar className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input className="pl-9" {...register('date', { required: true })} placeholder="e.g. June 2025" />
+                        </div>
+                    </div>
+                </div>
+
+                <div className="space-y-2">
+                    <Label>Image URL</Label>
+                    <div className="flex items-start gap-4">
+                        <div className="relative group flex-shrink-0">
+                            {previewUrl ? (
+                                <img src={previewUrl} alt="Preview" className="h-20 w-32 object-cover rounded-md border" />
+                            ) : (
+                                <div className="h-20 w-32 bg-muted flex items-center justify-center rounded-md border border-dashed">
+                                    <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                                </div>
+                            )}
+                        </div>
+                        <div className="flex-1 space-y-1">
+                            <div className="relative">
+                                <LinkIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                <Input 
+                                    className="pl-9"
+                                    placeholder="https://example.com/image.jpg" 
+                                    {...register('image', { required: true })} 
+                                />
+                            </div>
+                            <p className="text-[10px] text-muted-foreground">
+                                Paste a direct image link. A preview will appear on the left.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="space-y-2">
+                    <Label>Content / Description</Label>
+                    <Textarea 
+                        {...register('content', { required: true })} 
+                        placeholder="Write your blog post content here..." 
+                        rows={6}
+                    />
+                </div>
+
+                <div className="flex justify-end gap-2">
+                     {onCancel && (
+                         <Button type="button" variant="outline" onClick={onCancel}>
+                             Cancel
+                         </Button>
+                     )}
+                     <Button type="submit" disabled={isSubmitting}>
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {initialData ? 'Update Post' : 'Add Post'}
+                    </Button>
+                </div>
+             </form>
+        </CardContent>
+    </Card>
+  )
+}
 
 export function BlogManager() {
   const [blogData, setBlogData] = useState<BlogPost[]>([])
   const [loading, setLoading] = useState(true)
-  const [isFormOpen, setIsFormOpen] = useState(false)
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [selectedBlog, setSelectedBlog] = useState<BlogPost | null>(null)
-  const [isPending, startTransition] = useTransition()
+  const [editingBlog, setEditingBlog] = useState<BlogPost | null>(null)
   const { toast } = useToast()
-
-  const { register, handleSubmit, reset, watch } = useForm<Omit<BlogPost, 'id'>>()
-  const previewImage = watch('image')
   
   useEffect(() => {
     const blogRef = ref(db, 'blogs');
+
     const unsubscribe = onValue(blogRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
         const blogList = Object.keys(data).map(key => ({
-          id: key,
-          ...data[key]
-        }));
+          ...data[key],
+          id: key
+        })).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         setBlogData(blogList);
       } else {
         setBlogData([])
       }
       setLoading(false);
+    }, (error) => {
+        console.error("Firebase blogs read failed:", error);
+        setLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
 
-  const handleOpenForm = (item: BlogPost | null = null) => {
-    setSelectedBlog(item);
-    if (item) {
-      reset(item);
-    } else {
-      reset({ 
-        title: '', 
-        description: '', 
-        content: '', 
-        image: 'https://placehold.co/600x400.png',
-        tags: [],
-        readTime: '5 min read'
-      });
+  const handleAddBlog = async (newEntry: Omit<BlogPost, 'id'>) => {
+    try {
+        const newEntryRef = push(ref(db, 'blogs'));
+        await set(newEntryRef, newEntry);
+        toast({ title: 'Success', description: 'New blog post added.' });
+    } catch (error) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to add blog post.' });
     }
-    setIsFormOpen(true);
-  }
-
-  const handleDelete = (blog: BlogPost) => {
-    setSelectedBlog(blog)
-    setIsDeleteDialogOpen(true)
-  }
-
-  const confirmDelete = () => {
-    if (!selectedBlog) return
-    startTransition(async () => {
-      try {
-        await remove(ref(db, `blogs/${selectedBlog.id}`))
-        toast({ title: 'Success', description: 'Blog post deleted.' })
-        setIsDeleteDialogOpen(false)
-        setSelectedBlog(null)
-      } catch (error) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete blog post.' })
-      }
-    });
   }
   
-  const onSubmit = (data: any) => {
-    // Convert tags string to array if it's a string
-    if (typeof data.tags === 'string') {
-        data.tags = data.tags.split(',').map((t: string) => t.trim()).filter(Boolean);
-    }
-
-    startTransition(async () => {
+  const handleUpdateBlog = async (updatedEntry: Omit<BlogPost, 'id'>) => {
+      if (!editingBlog) return;
       try {
-        const id = selectedBlog?.id || push(ref(db, 'blogs')).key
-        await set(ref(db, `blogs/${id}`), data)
-        toast({ title: 'Success', description: 'Blog post saved.' })
-        setIsFormOpen(false)
+          await set(ref(db, `blogs/${editingBlog.id}`), updatedEntry);
+          toast({ title: 'Success', description: 'Blog post updated.' });
+          setEditingBlog(null);
       } catch (error) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Failed to save blog post.' })
+          toast({ variant: 'destructive', title: 'Error', description: 'Failed to update blog post.' });
       }
-    });
+  }
+  
+  const handleRemoveBlog = async (id: string) => {
+      if (!id) return;
+      if (confirm('Are you sure you want to delete this blog post?')) {
+          try {
+            await remove(ref(db, `blogs/${id}`));
+            toast({ title: 'Success', description: 'Blog post deleted.' });
+          } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete blog post.' });
+          }
+      }
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-end">
-        <Button onClick={() => handleOpenForm()}>
-          <PlusCircle className="mr-2 h-4 w-4" /> Add New Blog Post
-        </Button>
-      </div>
-      <div className="border rounded-md">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Image</TableHead>
-              <TableHead>Title</TableHead>
-              <TableHead>Read Time</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow><TableCell colSpan={4} className="text-center">Loading...</TableCell></TableRow>
-            ) : blogData.length > 0 ? (
-              blogData.map((blog) => (
-              <TableRow key={blog.id}>
-                <TableCell>
-                  <img src={blog.image} alt={blog.title} className="h-10 w-16 object-cover rounded border" />
-                </TableCell>
-                <TableCell className="font-medium">{blog.title}</TableCell>
-                <TableCell>{blog.readTime}</TableCell>
-                <TableCell className="text-right">
-                  <Button variant="ghost" size="icon" onClick={() => handleOpenForm(blog)}>
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" onClick={() => handleDelete(blog)}>
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-              ))
+    <div className="space-y-12">
+        <div className="space-y-6">
+            {editingBlog ? (
+                <BlogForm 
+                    onSave={handleUpdateBlog} 
+                    initialData={editingBlog} 
+                    onCancel={() => setEditingBlog(null)} 
+                />
             ) : (
-              <TableRow><TableCell colSpan={4} className="text-center">No blog posts found.</TableCell></TableRow>
+                <BlogForm onSave={handleAddBlog} />
             )}
-          </TableBody>
-        </Table>
-      </div>
 
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{selectedBlog ? 'Edit' : 'Add'} Blog Post</DialogTitle>
-          </DialogHeader>
-            <form onSubmit={handleSubmit(onSubmit)}>
-              <div className="grid gap-6 py-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="title">Title</Label>
-                    <Input id="title" {...register('title', { required: true })} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="readTime">Read Time</Label>
-                    <Input id="readTime" placeholder="e.g. 5 min read" {...register('readTime', { required: true })} />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="description">Short Description</Label>
-                  <Textarea id="description" {...register('description', { required: true })} rows={2} />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="tags">Tags (comma separated)</Label>
-                  <Input id="tags" placeholder="React, Next.js, Web Dev" {...register('tags')} />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Image URL</Label>
-                  <div className="flex items-start gap-4">
-                    {previewImage ? (
-                      <img src={previewImage} alt="Preview" className="h-20 w-32 object-cover rounded border" />
+            <Card>
+                <CardHeader>
+                    <CardTitle>Existing Blog Posts</CardTitle>
+                    <CardDescription>Manage your published articles.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {loading ? (
+                        <Skeleton className="h-48 w-full" />
+                    ) : blogData.length > 0 ? (
+                        <div className="border rounded-md">
+                            {blogData.map((item) => (
+                                <div key={item.id} className="flex items-center justify-between p-4 border-b last:border-b-0">
+                                    <div className="flex items-center gap-4 overflow-hidden">
+                                        {item.image ? (
+                                            <img src={item.image} alt={item.title} className="h-12 w-20 object-cover rounded border flex-shrink-0" />
+                                        ) : (
+                                            <div className="h-12 w-20 bg-muted flex items-center justify-center rounded border flex-shrink-0">
+                                                <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                                            </div>
+                                        )}
+                                        <div className="min-w-0">
+                                            <p className="font-bold truncate">{item.title}</p>
+                                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                                <Calendar className="h-3 w-3" /> {item.date}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground truncate mt-1">{item.description || item.content}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-1 ml-4">
+                                        <Button variant="ghost" size="icon" onClick={() => setEditingBlog(item)}>
+                                            <Edit2 className="h-4 w-4" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" onClick={() => handleRemoveBlog(item.id)}>
+                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     ) : (
-                      <div className="h-20 w-32 bg-muted flex items-center justify-center rounded border border-dashed">
-                        <ImageIcon className="h-8 w-8 text-muted-foreground" />
-                      </div>
+                        <p className="text-center text-muted-foreground py-8">No blog posts found.</p>
                     )}
-                    <div className="flex-1 space-y-2">
-                      <div className="relative">
-                        <LinkIcon className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input id="image" className="pl-8" {...register('image', { required: true })} placeholder="https://..." />
-                      </div>
-                      <p className="text-[10px] text-muted-foreground">Reusing existing image rendering logic.</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="content">Content (Markdown supported)</Label>
-                  <Textarea id="content" {...register('content', { required: true })} className="min-h-[200px]" />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button type="button" variant="secondary" onClick={() => setIsFormOpen(false)} disabled={isPending}>Cancel</Button>
-                <Button type="submit" disabled={isPending}>
-                   {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                   Save Blog Post
-                </Button>
-              </DialogFooter>
-            </form>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Are you sure?</DialogTitle>
-            <DialogDescription>
-              This action cannot be undone. This will permanently delete the blog post "{selectedBlog?.title}".
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => setIsDeleteDialogOpen(false)} disabled={isPending}>Cancel</Button>
-            <Button variant="destructive" onClick={confirmDelete} disabled={isPending}>
-              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+                </CardContent>
+            </Card>
+        </div>
     </div>
   )
 }

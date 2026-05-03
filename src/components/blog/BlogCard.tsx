@@ -1,10 +1,9 @@
-
 import Image from 'next/image'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Clock } from 'lucide-react'
+import { Calendar } from 'lucide-react'
 import type { BlogPost } from '@/lib/data'
 import ReactMarkdown from 'react-markdown'
 
@@ -20,7 +19,7 @@ export default function BlogCard({ post }: BlogCardProps) {
           <CardHeader className="p-0">
             <div className="aspect-video relative">
               <Image
-                src={post.image}
+                src={post.image || "https://placehold.co/600x400.png"}
                 alt={post.title}
                 fill
                 className="object-cover"
@@ -30,17 +29,17 @@ export default function BlogCard({ post }: BlogCardProps) {
           </CardHeader>
           <CardContent className="p-6 flex-grow">
             <CardTitle className="font-headline mb-2">{post.title}</CardTitle>
-            <CardDescription>{post.description}</CardDescription>
+            <CardDescription className="line-clamp-3">{post.description || post.content}</CardDescription>
           </CardContent>
           <CardFooter className="p-6 pt-0 flex flex-col items-start gap-4">
             <div className="flex flex-wrap gap-2">
-              {post.tags.map(tag => (
+              {post.tags && post.tags.map(tag => (
                 <Badge key={tag} variant="secondary">{tag}</Badge>
               ))}
             </div>
             <div className="flex items-center text-sm text-muted-foreground">
-              <Clock className="mr-2 h-4 w-4" />
-              <span>{post.readTime}</span>
+              <Calendar className="mr-2 h-4 w-4" />
+              <span>{post.date}</span>
             </div>
           </CardFooter>
         </Card>
@@ -50,13 +49,13 @@ export default function BlogCard({ post }: BlogCardProps) {
           <DialogTitle className="font-headline text-2xl">{post.title}</DialogTitle>
            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 text-sm text-muted-foreground pt-2">
               <div className="flex flex-wrap gap-2">
-                {post.tags.map(tag => (
+                {post.tags && post.tags.map(tag => (
                   <Badge key={tag} variant="secondary">{tag}</Badge>
                 ))}
               </div>
               <div className="flex items-center">
-                <Clock className="mr-2 h-4 w-4" />
-                <span>{post.readTime}</span>
+                <Calendar className="mr-2 h-4 w-4" />
+                <span>{post.date}</span>
               </div>
           </div>
         </DialogHeader>
