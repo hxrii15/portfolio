@@ -4,6 +4,7 @@ export type Education = {
   degree: string;
   duration: string;
   current: boolean;
+  institutionLink?: string;
 };
 
 export type Project = {
@@ -66,4 +67,12 @@ export type Certificate = {
   certificateId: string;
   issueDate: string;
   imageUrl?: string;
+};
+
+export type ContactMessage = {
+  id: string;
+  name: string;
+  email: string;
+  message: string;
+  timestamp: number;
 };

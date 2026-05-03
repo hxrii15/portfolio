@@ -14,19 +14,44 @@ import { Loader2, Trash2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { Skeleton } from '../ui/skeleton'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card'
+import * as LucideIcons from 'lucide-react'
 
-// Separate form for adding a new skill
-const AddSkillForm = ({ onAdd }: { onAdd: (skill: Omit<Skill, 'id'>) => Promise<void> }) => {
-  const { register, handleSubmit, reset, formState: { isSubmitting } } = useForm<Omit<Skill, 'id'>>()
+const Icon = ({ name, className }: { name: string; className?: string }) => {
+  const LucideIcon = (LucideIcons as any)[name];
+  if (!LucideIcon) {
+    return <LucideIcons.Code className={className} />; // Default icon
+  }
+  return <LucideIcon className={className} />;
+};
 
-  const handleAdd = async (data: Omit<Skill, 'id'>) => {
-    await onAdd(data)
-    reset()
+// Unified form for adding/editing a skill
+const SkillForm = ({ onSave, initialData, onCancel }: { 
+    onSave: (skill: Omit<Skill, 'id'>) => Promise<void>,
+    initialData?: Skill | null,
+    onCancel?: () => void
+}) => {
+  const { register, handleSubmit, reset, watch, formState: { isSubmitting } } = useForm<Omit<Skill, 'id'>>()
+  const iconName = watch('icon')
+
+  useEffect(() => {
+    if (initialData) {
+        reset(initialData)
+    } else {
+        reset({ icon: '', name: '', description: '' })
+    }
+  }, [initialData, reset])
+
+  const handleSave = async (data: Omit<Skill, 'id'>) => {
+    await onSave(data)
+    if (!initialData) reset()
   }
 
   return (
-    <form onSubmit={handleSubmit(handleAdd)} className="grid grid-cols-12 gap-4 items-end p-4 border rounded-md bg-muted/50">
-        <div className="col-span-12 sm:col-span-3 space-y-2">
+    <form onSubmit={handleSubmit(handleSave)} className="grid grid-cols-12 gap-4 items-end p-4 border rounded-md bg-muted/30">
+        <div className="col-span-12 sm:col-span-1 flex justify-center pb-2">
+            <Icon name={iconName} className="h-8 w-8 text-primary" />
+        </div>
+        <div className="col-span-12 sm:col-span-2 space-y-2">
             <Label>Icon Name</Label>
             <Input placeholder="e.g. Code" {...register('icon', { required: true })} />
         </div>
@@ -38,11 +63,16 @@ const AddSkillForm = ({ onAdd }: { onAdd: (skill: Omit<Skill, 'id'>) => Promise<
             <Label>Description</Label>
             <Input placeholder="e.g. React, Next.js" {...register('description', { required: true })} />
         </div>
-        <div className="col-span-12 sm:col-span-2">
-            <Button type="submit" disabled={isSubmitting} className="w-full">
+        <div className="col-span-12 sm:col-span-2 flex gap-2">
+            <Button type="submit" disabled={isSubmitting} className="flex-1">
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Add Skill
+                {initialData ? 'Update' : 'Add'}
             </Button>
+            {onCancel && (
+                <Button type="button" variant="outline" onClick={onCancel} size="icon">
+                    <LucideIcons.X className="h-4 w-4" />
+                </Button>
+            )}
         </div>
     </form>
   )
@@ -56,6 +86,7 @@ export function AboutManager() {
 
   const aboutImage = watch('aboutImage')
   const [skills, setSkills] = useState<Skill[]>([])
+  const [editingSkill, setEditingSkill] = useState<Skill | null>(null)
 
   useEffect(() => {
     const aboutRef = ref(db, 'about');
@@ -109,11 +140,23 @@ export function AboutManager() {
   }
 
   const handleRemoveSkill = async (skillId: string) => {
+    if (!confirm('Are you sure you want to delete this skill?')) return;
     try {
       await remove(ref(db, `about/skills/${skillId}`));
       toast({ title: 'Success', description: 'Skill removed.' });
     } catch (error) {
       toast({ variant: 'destructive', title: 'Error', description: 'Failed to remove skill.' });
+    }
+  }
+
+  const handleUpdateSkill = async (updatedSkill: Omit<Skill, 'id'>) => {
+    if (!editingSkill) return;
+    try {
+        await set(ref(db, `about/skills/${editingSkill.id}`), updatedSkill);
+        toast({ title: 'Success', description: 'Skill updated.' });
+        setEditingSkill(null);
+    } catch (error) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to update skill.' });
     }
   }
   
@@ -168,26 +211,37 @@ export function AboutManager() {
             <CardTitle>Manage Skills</CardTitle>
             <CardDescription>Add new skills one by one. They are saved directly.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-            <AddSkillForm onAdd={handleAddSkill} />
+         <CardContent className="space-y-4">
+            <SkillForm 
+                onSave={editingSkill ? handleUpdateSkill : handleAddSkill} 
+                initialData={editingSkill} 
+                onCancel={editingSkill ? () => setEditingSkill(null) : undefined}
+            />
             <div className="space-y-2">
                 <h4 className="font-medium">Existing Skills</h4>
                  {skills.length > 0 ? (
                     <div className="border rounded-md">
-                        {skills.map((skill) => (
-                             <div key={skill.id} className="flex items-center justify-between p-2 border-b last:border-b-0">
-                                <div className="flex items-center gap-4">
-                                   <span className="font-mono text-xs p-1 bg-muted rounded">{skill.icon}</span>
-                                   <div>
-                                     <p className="font-semibold">{skill.name}</p>
-                                     <p className="text-sm text-muted-foreground">{skill.description}</p>
-                                   </div>
-                                </div>
-                                <Button variant="ghost" size="icon" onClick={() => handleRemoveSkill(skill.id)}>
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                             </div>
-                        ))}
+                         {skills.map((skill) => (
+                              <div key={skill.id} className="flex items-center justify-between p-2 border-b last:border-b-0">
+                                 <div className="flex items-center gap-4">
+                                    <div className="p-2 bg-primary/10 rounded-md">
+                                        <Icon name={skill.icon} className="h-6 w-6 text-primary" />
+                                    </div>
+                                    <div>
+                                      <p className="font-semibold">{skill.name}</p>
+                                      <p className="text-sm text-muted-foreground">{skill.description}</p>
+                                    </div>
+                                 </div>
+                                 <div className="flex gap-1">
+                                    <Button variant="ghost" size="icon" onClick={() => setEditingSkill(skill)}>
+                                        <LucideIcons.Edit2 className="h-4 w-4" />
+                                    </Button>
+                                    <Button variant="ghost" size="icon" onClick={() => handleRemoveSkill(skill.id)}>
+                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                 </div>
+                              </div>
+                         ))}
                     </div>
                 ) : (
                     <p className="text-sm text-muted-foreground text-center p-4">No skills added yet.</p>

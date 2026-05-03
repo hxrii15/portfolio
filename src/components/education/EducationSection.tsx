@@ -116,7 +116,6 @@ export default function EducationSection() {
                         </div>
                     ) : educationData.length > 0 ? (
                         <div className="max-w-2xl mx-auto relative">
-                             <div className="hidden md:block absolute left-1/2 top-0 h-full w-0.5 -translate-x-1/2 bg-border"></div>
                              <div className="space-y-8 md:space-y-12">
                                 {educationData.map((item, index) => (
                                     <div key={item.id} className={`relative flex flex-col md:flex-row items-center gap-4 md:gap-0 ${index % 2 !== 0 ? 'md:flex-row-reverse' : ''}`}>
@@ -131,7 +130,19 @@ export default function EducationSection() {
                                                         <CardTitle className="font-headline text-lg font-bold">{item.degree}</CardTitle>
                                                         {item.current && <Badge className="shrink-0 bg-primary/10 text-primary border-primary/20">Current</Badge>}
                                                     </div>
-                                                    <p className="text-sm font-medium text-foreground/80 mt-1">{item.institution}</p>
+                                                    {item.institutionLink ? (
+                                                        <a 
+                                                            href={item.institutionLink} 
+                                                            target="_blank" 
+                                                            rel="noopener noreferrer"
+                                                            className="text-sm font-medium text-primary hover:underline mt-1 inline-flex items-center gap-1"
+                                                        >
+                                                            {item.institution}
+                                                            <ExternalLink className="h-3 w-3" />
+                                                        </a>
+                                                    ) : (
+                                                        <p className="text-sm font-medium text-foreground/80 mt-1">{item.institution}</p>
+                                                    )}
                                                     <p className="text-xs text-muted-foreground mt-2">{item.duration}</p>
                                                 </CardHeader>
                                             </Card>

@@ -27,7 +27,8 @@ const EducationForm = ({ onSave, initialData, onCancel }: {
           institution: '',
           degree: '',
           duration: '',
-          current: false
+          current: false,
+          institutionLink: ''
       }
   })
 
@@ -39,7 +40,8 @@ const EducationForm = ({ onSave, initialData, onCancel }: {
             institution: '',
             degree: '',
             duration: '',
-            current: false
+            current: false,
+            institutionLink: ''
         })
     }
   }, [initialData, reset])
@@ -69,9 +71,15 @@ const EducationForm = ({ onSave, initialData, onCancel }: {
                         <Input {...register('degree', { required: true })} />
                     </div>
                 </div>
-                 <div className="space-y-2">
-                    <Label>Duration</Label>
-                    <Input placeholder="e.g., 2020 - 2024" {...register('duration', { required: true })} />
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label>Duration</Label>
+                        <Input placeholder="e.g., 2020 - 2024" {...register('duration', { required: true })} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Institution Link (Optional)</Label>
+                        <Input placeholder="https://college.edu" {...register('institutionLink')} />
+                    </div>
                 </div>
                 <div className="flex items-center space-x-2">
                      <Controller
@@ -399,7 +407,9 @@ export function EducationManager() {
                                 <div key={item.id} className="flex items-center justify-between p-3 border-b last:border-b-0">
                                     <div>
                                         <p className="font-bold">{item.degree}</p>
-                                        <p className="text-sm font-normal text-foreground/80">{item.institution}</p>
+                                        <p className="text-sm font-normal text-foreground/80">
+                                            {item.institution} {item.institutionLink && <span className="text-[10px] text-muted-foreground">(Link: {item.institutionLink})</span>}
+                                        </p>
                                         <p className="text-sm text-muted-foreground">{item.duration} {item.current && <span className="text-primary font-semibold">(Current)</span>}</p>
                                     </div>
                                     <div className="flex gap-1">
