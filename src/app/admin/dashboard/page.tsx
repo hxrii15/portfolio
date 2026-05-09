@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
 import { logout } from '@/app/actions'
-import { Loader2, LogOut, Briefcase, GraduationCap, Home, User, Feather, BookOpen } from 'lucide-react'
+import { Loader2, LogOut, Briefcase, GraduationCap, Home, User, Feather, BookOpen, FileText } from 'lucide-react'
 import { auth } from '@/lib/firebase'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { EducationManager } from '@/components/admin/EducationManager'
@@ -16,6 +16,7 @@ import { HomeManager } from '@/components/admin/HomeManager'
 import { AboutManager } from '@/components/admin/AboutManager'
 import { PoemManager } from '@/components/admin/PoemManager'
 import { BlogManager } from '@/components/admin/BlogManager'
+import { CVManager } from '@/components/admin/CVManager'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -51,7 +52,7 @@ export default function DashboardPage() {
       </header>
       <main className="container mx-auto p-4 md:p-6">
         <Tabs defaultValue="home">
-          <TabsList className="grid w-full grid-cols-6 max-w-3xl mx-auto">
+          <TabsList className="grid w-full grid-cols-7 max-w-4xl mx-auto">
             <TabsTrigger value="home">
               <Home className="mr-2 h-4 w-4" />
               Home
@@ -75,6 +76,10 @@ export default function DashboardPage() {
             <TabsTrigger value="blog">
               <BookOpen className="mr-2 h-4 w-4" />
               Blog
+            </TabsTrigger>
+            <TabsTrigger value="cv">
+              <FileText className="mr-2 h-4 w-4" />
+              CV
             </TabsTrigger>
           </TabsList>
           <TabsContent value="home">
@@ -140,6 +145,17 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <BlogManager />
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="cv">
+            <Card>
+              <CardHeader>
+                <CardTitle>Manage CV / Resume</CardTitle>
+                <CardDescription>Upload your CV or paste a direct link.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <CVManager />
               </CardContent>
             </Card>
           </TabsContent>

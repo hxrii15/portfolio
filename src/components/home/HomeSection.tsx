@@ -9,9 +9,16 @@ import { db } from '@/lib/firebase'
 import { ref, onValue } from 'firebase/database'
 import type { HomeData } from '@/lib/data'
 import { Skeleton } from '../ui/skeleton'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 export default function HomeSection() {
   const [homeData, setHomeData] = useState<HomeData | null>(null)
+  const [cvUrl, setCvUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -32,25 +39,33 @@ export default function HomeSection() {
       console.error("Failed to read from localStorage", e);
     }
 
-    const homeRef = ref(db, 'home')
-    const unsubscribe = onValue(homeRef, (snapshot) => {
-      const data = snapshot.val()
+    const homeRef = ref(db, 'home');
+    const cvRef = ref(db, 'cv/url');
+
+    const unsubscribeHome = onValue(homeRef, (snapshot) => {
+      const data = snapshot.val();
       if (data) {
-        setHomeData(data)
+        setHomeData(data);
         try {
-          const now = new Date().getTime();
-          localStorage.setItem(cacheKey, JSON.stringify({ timestamp: now, data }));
+          localStorage.setItem(cacheKey, JSON.stringify({ timestamp: new Date().getTime(), data }));
         } catch (e) {
           console.error("Failed to write to localStorage", e);
         }
       }
-      setLoading(false)
+      setLoading(false);
     }, (error) => {
       console.error("Firebase read failed: " + error.message);
       setLoading(false);
     });
 
-    return () => unsubscribe()
+    const unsubscribeCv = onValue(cvRef, (snapshot) => {
+      setCvUrl(snapshot.val());
+    });
+
+    return () => {
+      unsubscribeHome();
+      unsubscribeCv();
+    };
   }, [])
 
   if (loading) {
@@ -98,9 +113,33 @@ export default function HomeSection() {
               <Button asChild size="lg">
                 <a href="#projects">View My Work</a>
               </Button>
-              <Button asChild size="lg" variant="outline">
-                <a href="#about">More About Me</a>
-              </Button>
+              
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span>
+                      <Button 
+                        asChild={!!cvUrl} 
+                        size="lg" 
+                        variant="outline" 
+                        disabled={!cvUrl}
+                        className={!cvUrl ? "opacity-50 cursor-not-allowed" : ""}
+                      >
+                        {cvUrl ? (
+                          <a href={cvUrl} target="_blank" rel="noopener noreferrer">View / Open My CV</a>
+                        ) : (
+                          <button type="button">View / Open My CV</button>
+                        )}
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  {!cvUrl && (
+                    <TooltipContent>
+                      <p>CV not available</p>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
           <div className="flex justify-center">

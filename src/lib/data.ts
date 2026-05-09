@@ -77,3 +77,10 @@ export type ContactMessage = {
   message: string;
   timestamp: number;
 };
+
+export type CVData = {
+  url: string;
+  fileName: string;
+  storagePath: string | null;
+  uploadedAt: number;
+};
