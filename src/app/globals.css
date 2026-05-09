@@ -89,3 +89,36 @@ body {
     @apply w-full py-16 md:py-24 lg:py-32;
   }
 }
+
+@keyframes gold-shimmer-sweep {
+  0% {
+    background-position: 0% 0%;
+  }
+  100% {
+    background-position: 200% 200%;
+  }
+}
+
+.gold-resume-btn {
+  background: linear-gradient(
+    135deg,
+    #BF953F 0%,
+    #FCF6BA 20%,
+    #B38728 40%,
+    #FBF5B7 60%,
+    #AA771C 80%,
+    #BF953F 100%
+  ) !important;
+  background-size: 200% 200% !important;
+  animation: gold-shimmer-sweep 3s linear infinite !important;
+  color: #1a1a1a !important; /* Deep dark for contrast on gold */
+  border: 1px solid #AA771C !important;
+  font-weight: 600 !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.gold-resume-btn:hover {
+  transform: scale(1.02);
+  box-shadow: 0 0 20px rgba(191, 149, 63, 0.4);
+}
+

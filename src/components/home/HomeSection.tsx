@@ -123,12 +123,12 @@ export default function HomeSection() {
                         size="lg" 
                         variant="outline" 
                         disabled={!cvUrl}
-                        className={!cvUrl ? "opacity-50 cursor-not-allowed" : ""}
+                        className={`gold-resume-btn ${!cvUrl ? "opacity-50 cursor-not-allowed" : ""}`}
                       >
                         {cvUrl ? (
-                          <a href={cvUrl} target="_blank" rel="noopener noreferrer">View / Open My CV</a>
+                          <a href={cvUrl} target="_blank" rel="noopener noreferrer">Resume</a>
                         ) : (
-                          <button type="button">View / Open My CV</button>
+                          <button type="button">Resume</button>
                         )}
                       </Button>
                     </span>
