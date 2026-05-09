@@ -28,6 +28,10 @@ import type { BlogPost } from '@/lib/data'
 import { Edit, Trash2, PlusCircle, Loader2, Calendar, Clock, Tag, Image as ImageIcon } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
+interface BlogFormValues extends Omit<BlogPost, 'id' | 'tags'> {
+  tags: string;
+}
+
 export function BlogManager() {
   const [blogData, setBlogData] = useState<BlogPost[]>([])
   const [loading, setLoading] = useState(true)
@@ -37,7 +41,7 @@ export function BlogManager() {
   const [isPending, startTransition] = useTransition()
   const { toast } = useToast()
 
-  const { register, handleSubmit, reset, watch } = useForm<Omit<BlogPost, 'id'>>()
+  const { register, handleSubmit, reset, watch } = useForm<BlogFormValues>()
   const previewImage = watch('image')
   
   useEffect(() => {
@@ -72,8 +76,8 @@ export function BlogManager() {
     if (item) {
       reset({
         ...item,
-        tags: Array.isArray(item.tags) ? item.tags.join(', ') : item.tags
-      });
+        tags: Array.isArray(item.tags) ? item.tags.join(', ') : (item.tags || '')
+      } as BlogFormValues);
     } else {
       reset({ 
         title: '', 
@@ -107,19 +111,29 @@ export function BlogManager() {
     });
   }
   
-  const onSubmit = (data: any) => {
+  const onSubmit = (data: BlogFormValues) => {
     startTransition(async () => {
       try {
-        const id = selectedBlog?.id || push(ref(db, 'blogs')).key
+        const blogId = selectedBlog?.id || push(ref(db, 'blogs')).key;
+        if (!blogId) throw new Error("Could not generate a valid ID.");
+
+        // Create the entry for Firebase, converting tags string to array
         const blogEntry = {
           ...data,
-          tags: typeof data.tags === 'string' ? data.tags.split(',').map((t: string) => t.trim()).filter(Boolean) : (Array.isArray(data.tags) ? data.tags : [])
+          tags: data.tags.split(',').map((t: string) => t.trim()).filter(Boolean)
         }
-        await set(ref(db, `blogs/${id}`), blogEntry)
-        toast({ title: 'Success', description: 'Blog post saved.' })
-        setIsFormOpen(false)
-      } catch (error) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Failed to save blog post.' })
+        
+        await set(ref(db, `blogs/${blogId}`), blogEntry);
+        toast({ title: 'Success', description: 'Blog post saved successfully.' });
+        setIsFormOpen(false);
+        setSelectedBlog(null);
+      } catch (error: any) {
+        console.error("Save error:", error);
+        toast({ 
+          variant: 'destructive', 
+          title: 'Error', 
+          description: error.message || 'Failed to save blog post. Please check your connection or permissions.' 
+        });
       }
     });
   }
